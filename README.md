@@ -1,2 +1,2 @@
-# front-end
-The website, written in Django
+# Front End
+The website, written in Flask

@@ -1,0 +1,26 @@
+version: "3.7"
+services:
+  web-server:
+    build: ./
+    image: aiwarsoc/front-end:debug
+    ports:
+      - "80:80"
+    networks:
+      - database
+    environment:
+      DEBUG: "True"
+  database:
+    image: aiwarssoc/database
+    volumes:
+      - "./debug/database:/database"
+    networks:
+      database:
+        aliases:
+          - database
+    environment:
+      DEBUG: "True"
+      INITIAL_SCORE: 1000
+      SCORE_TURBULENCE_MILLIS: 5000
+      HEALTH_BUFFER: 100
+networks:
+  database:
