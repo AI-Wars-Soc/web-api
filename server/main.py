@@ -18,7 +18,8 @@ logging.basicConfig(level=logging.DEBUG if os.getenv('DEBUG') else logging.WARNI
 @app.route('/')
 def index():
     return render_template(
-        'index.html'
+        'index.html',
+        light_mode=True
     )
 
 
