@@ -3,12 +3,16 @@ services:
   web-server:
     build: ./
     image: aiwarsoc/front-end:debug
+    volumes:
+      - "./server:/home/web_user/server"
     ports:
       - "80:80"
     networks:
       - database
     environment:
       DEBUG: "True"
+    secrets:
+      - secret_key
   database:
     image: aiwarssoc/database
     volumes:
@@ -18,9 +22,12 @@ services:
         aliases:
           - database
     environment:
-      DEBUG: "True"
+      DEBUG: "False"
       INITIAL_SCORE: 1000
       SCORE_TURBULENCE_MILLIS: 5000
       HEALTH_BUFFER: 100
 networks:
   database:
+secrets:
+  secret_key:
+    file: ./debug_secret.txt

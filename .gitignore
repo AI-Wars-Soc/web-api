@@ -133,3 +133,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/debug/database/cuwais.db
