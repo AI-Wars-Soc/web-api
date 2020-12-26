@@ -55,7 +55,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
-                    {% if user is defined %}
+                    {% if user is not none %}
                     <li class="nav-item">
                         <a class="nav-link" href="/">Home</a>
                     </li>
@@ -83,7 +83,7 @@
     {% endblock %}
 </div>
 
-{% if user is undefined %}
+{% if user is none %}
 <!-- Login Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
      aria-hidden="true">
