@@ -37,12 +37,19 @@
         integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
         crossorigin="anonymous"></script>
 
+<!-- Google login -->
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<meta name="google-signin-client_id" content="389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com">
+
+<!-- Login logic -->
+<script src="{{ url_for('static', filename='login.js') }}"></script>
+
 <div id="navbar">
     {% block navbar %}
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">CUWAIS</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            <a class="navbar-brand" href="/">CUWAIS</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -94,20 +101,12 @@
                     Due to a lack of time and competence we do not have our own system for securely storing passwords.
                     Please use someone else's:
                 </p>
+                <div class="d-flex justify-content-center">
+                    <div class="g-signin2" data-onsuccess="onGoogleSignIn"></div>
+                </div>
+                <p></p>
                 <p>
-                    <a href="https://www.google.com">
-                        Sign in with Google
-                    </a>
-                </p>
-                <p>
-                    <a href="https://www.facebook.com">
-                        Sign in with Facebook
-                    </a>
-                </p>
-                <p>
-                    <a href="https://www.github.com">
-                        Sign in with Github
-                    </a>
+                    I will add more ways of logging in soon if people need them, but who doesn't have a Google account?
                 </p>
             </div>
             <div class="modal-footer">
