@@ -6,7 +6,7 @@ services:
     volumes:
       - "./server:/home/web_user/server"
     ports:
-      - "80:80"
+      - "80:8080"
     networks:
       - database
     environment:

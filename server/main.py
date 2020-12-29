@@ -48,7 +48,7 @@ def login_google():
 
 if __name__ == "__main__":
     if app.config["DEBUG"]:
-        app.run(host="0.0.0.0", port=80)
+        app.run(host="0.0.0.0", port=8080)
     else:
         from waitress import serve
-        serve(app, host="0.0.0.0", port=80)
+        serve(app, host="0.0.0.0", port=8080)
