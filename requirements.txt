@@ -4,3 +4,4 @@ chess~=1.3.2
 cuwais-common
 waitress~=1.4.4
 google-auth~=1.24.0
+cachecontrol
