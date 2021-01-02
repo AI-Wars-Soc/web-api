@@ -22,7 +22,7 @@ services:
         aliases:
           - database
     environment:
-      DEBUG: "False"
+      DEBUG: "True"
       INITIAL_SCORE: 1000
       SCORE_TURBULENCE_MILLIS: 5000
       HEALTH_BUFFER: 100

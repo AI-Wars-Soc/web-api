@@ -1,7 +1,8 @@
 import logging
 import os
 
-from flask import Flask, render_template, request, abort
+import cuwais.common
+from flask import Flask, render_template, request, abort, Response
 
 from server import login
 
@@ -32,7 +33,11 @@ def login_google():
         abort(400)
     token = json.get('idtoken')
 
-    return login.get_user_from_google_token(token)
+    user = login.get_user_from_google_token(token)
+
+    return Response(cuwais.common.encode(user),
+                    status=200,
+                    mimetype='application/json')
 
 
 if __name__ == "__main__":
