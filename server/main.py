@@ -1,8 +1,11 @@
 import logging
 import os
+from datetime import timedelta
 
 import cuwais.common
-from flask import Flask, render_template, request, abort, Response
+import redis
+from flask import Flask, render_template, request, abort, Response, session, redirect
+from flask_session import Session
 
 from server import login
 
@@ -11,18 +14,54 @@ app = Flask(
     template_folder="templates"
 )
 with open("/run/secrets/secret_key") as f:
-    app.secret_key = f.readlines()
+    secret = "".join(f.readlines())
+    app.secret_key = secret
+    app.config["SECRET_KEY"] = secret
 app.config["DEBUG"] = os.getenv('DEBUG') == 'True'
+app.config["TESTING"] = os.getenv('TESTING') == 'True'
+
+app.config["SESSION_COOKIE_NAME"] = "cuwais_session"
+app.config["SERVER_NAME"] = str(os.getenv('SERVER_NAME'))
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
+app.config["SESSION_TYPE"] = 'redis'
+app.config["SESSION_REDIS"] = redis.Redis(host='redis', port=6379)
+sess = Session(app)
 
 logging.basicConfig(level=logging.DEBUG if os.getenv('DEBUG') else logging.WARNING)
 
 
+def save_user(user, current_session):
+    current_session["cuwais_user"] = cuwais.common.encode(user)
+
+
+def get_user(current_session):
+    cuwais_user = cuwais.common.decode(current_session.get("cuwais_user", "null"))
+    return cuwais_user
+
+
+def extract_session_objs():
+    return dict(
+        user=get_user(session),
+        light_mode=True
+    )
+
+
 @app.route('/')
 def index():
+    user = get_user(session)
+    if user is not None:
+        return redirect('/home')
     return render_template(
         'index.html',
-        light_mode=True,
-        user=None
+        **extract_session_objs()
+    )
+
+
+@app.route('/home')
+def home():
+    return render_template(
+        'index.html',
+        **extract_session_objs()
     )
 
 
@@ -34,8 +73,11 @@ def login_google():
     token = json.get('idtoken')
 
     user = login.get_user_from_google_token(token)
+    save_user(user, session)
 
-    return Response(cuwais.common.encode(user),
+    encoded = cuwais.common.encode(user)
+
+    return Response(encoded,
                     status=200,
                     mimetype='application/json')
 

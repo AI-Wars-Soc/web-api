@@ -1,4 +1,5 @@
 import logging
+import os
 
 from google.auth import exceptions
 from google.oauth2 import id_token
@@ -12,7 +13,7 @@ from cuwais.common import User, InvalidRequestError
 session = requests.session()
 cached_session = cachecontrol.CacheControl(session)
 
-CLIENT_ID = "389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com"
+CLIENT_ID = str(os.getenv('CLIENT_ID'))
 
 
 def get_user_from_google_token(token) -> User:

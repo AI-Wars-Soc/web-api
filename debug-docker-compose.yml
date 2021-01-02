@@ -9,8 +9,12 @@ services:
       - "80:8080"
     networks:
       - database
+      - redis
     environment:
       DEBUG: "True"
+      TESTING: "True"
+      SERVER_NAME: "lvh.me"
+      CLIENT_ID: "389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com"
     secrets:
       - secret_key
   database:
@@ -26,8 +30,18 @@ services:
       INITIAL_SCORE: 1000
       SCORE_TURBULENCE_MILLIS: 5000
       HEALTH_BUFFER: 100
+  redis:
+    image: redis
+    volumes:
+      - "./debug/redis:/data"
+    command: "--appendonly yes"
+    networks:
+      redis:
+        aliases:
+          - redis
 networks:
   database:
+  redis:
 secrets:
   secret_key:
     file: ./debug_secret.txt
