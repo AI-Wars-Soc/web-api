@@ -1,17 +1,23 @@
 function onGoogleSignIn(googleUser) {
-    const profile = googleUser.getBasicProfile();
-    console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-    console.log('Name: ' + profile.getName());
-    console.log('Image URL: ' + profile.getImageUrl());
-    console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
     const id_token = googleUser.getAuthResponse().id_token;
-    console.log('id_token: ' + id_token);
+    const error_message = $("#login-error-msg");
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/login_google');
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.onload = function () {
+        if (xhr.status >= 300) {
+            console.log("Could not sign in");
+            error_message.show();
+            return;
+        }
+        error_message.hide();
         console.log('Signed in as: ' + xhr.responseText);
+        window.location.replace("/home");
+    };
+    xhr.onerror = function () {
+        console.log("Could not sign in");
+        error_message.show();
     };
     xhr.send(JSON.stringify({
         idtoken: id_token
