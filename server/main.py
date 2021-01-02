@@ -1,13 +1,9 @@
 import logging
 import os
 
-from google.auth import exceptions
-from google.oauth2 import id_token
-import google.auth.transport.requests
-import cachecontrol
-import requests
-
 from flask import Flask, render_template, request, abort
+
+from server import login
 
 app = Flask(
     __name__,
@@ -18,11 +14,6 @@ with open("/run/secrets/secret_key") as f:
 app.config["DEBUG"] = os.getenv('DEBUG') == 'True'
 
 logging.basicConfig(level=logging.DEBUG if os.getenv('DEBUG') else logging.WARNING)
-
-session = requests.session()
-cached_session = cachecontrol.CacheControl(session)
-
-CLIENT_ID = "389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com"
 
 
 @app.route('/')
@@ -40,21 +31,8 @@ def login_google():
     if 'idtoken' not in json:
         abort(400)
     token = json.get('idtoken')
-    id_info = None
-    try:
-        # Specify the CLIENT_ID of the app that accesses the backend:
-        google_request = google.auth.transport.requests.Request(session=cached_session)
-        id_info = id_token.verify_oauth2_token(token, google_request, CLIENT_ID)
 
-        if id_info['iss'] != 'https://accounts.google.com':
-            raise ValueError('Wrong issuer.')
-
-    except exceptions.GoogleAuthError:
-        logging.warning("Attempted login with invalid token: " + token)
-        abort(400)
-    except ValueError:
-        abort(400)
-    return id_info
+    return login.get_user_from_google_token(token)
 
 
 if __name__ == "__main__":
