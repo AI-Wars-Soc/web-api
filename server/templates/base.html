@@ -12,15 +12,14 @@
           integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
 
     <!-- Bootswatch -->
-    {% if light_mode is true %}
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/flatly/bootstrap.min.css"
-              integrity="sha384-qF/QmIAj5ZaYFAeQcrQ6bfVMAh4zZlrGwTPY7T/M+iTTLJqJBJjwwnsE5Y0mV7QK"
-              crossorigin="anonymous">
-    {% else %}
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css"
-              integrity="sha384-nNK9n28pDUDDgIiIqZ/MiyO3F4/9vsMtReZK39klb/MtkZI3/LtjSjlmyVPS3KdN"
-              crossorigin="anonymous">
-    {% endif %}
+    <link rel="stylesheet" integrity=sha384-qF/QmIAj5ZaYFAeQcrQ6bfVMAh4zZlrGwTPY7T/M+iTTLJqJBJjwwnsE5Y0mV7QK",
+          href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/flatly/bootstrap.min.css" crossorigin="anonymous"
+          id="bootswatch-light">
+    <link rel="stylesheet" integrity=sha384-nNK9n28pDUDDgIiIqZ/MiyO3F4/9vsMtReZK39klb/MtkZI3/LtjSjlmyVPS3KdN",
+          href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css" crossorigin="anonymous"
+          id="bootswatch-dark">
+    <link rel="stylesheet" crossorigin="anonymous"
+          id="bootswatch-active">
 
     <!-- Font Awesome js -->
     <script src="https://kit.fontawesome.com/66388d0de8.js" crossorigin="anonymous"></script>
@@ -28,6 +27,9 @@
     <title>CUWAIS</title>
 </head>
 <body>
+<!-- Cookies -->
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
+
 <!-- jQuery, Bootstrap and popper -->
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
@@ -40,11 +42,13 @@
         crossorigin="anonymous"></script>
 
 <!-- Google login -->
-<script src="https://apis.google.com/js/platform.js" async defer></script>
+<script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
 <meta name="google-signin-client_id" content="389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com">
 
 <!-- Login logic -->
 <script src="{{ url_for('static', filename='login.js') }}"></script>
+<!-- Style logic -->
+<script src="{{ url_for('static', filename='style.js') }}"></script>
 
 <div id="navbar">
     {% block navbar %}
@@ -59,7 +63,7 @@
                     <ul class="navbar-nav">
                         {% if user is not none %}
                             <li class="nav-item">
-                                <a class="nav-link" href="/">Home</a>
+                                <a class="nav-link" href="/home">Home</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="/submissions">Submissions</a>
@@ -107,7 +111,7 @@
                         </p>
                         <div class="d-flex justify-content-center">
                             <div class="g-signin2" data-width="300" data-height="50" data-longtitle="true"
-                                 data-onsuccess="onGoogleSignIn"
+                                 data-onsuccess="onGoogleSignIn" data-onfailure="onLoginFail"
                                     {% if light_mode is true %}
                                  data-theme="light"
                                     {% else %}
