@@ -151,7 +151,10 @@
     </div>
 {% endif %}
 
-{% block content %}{% endblock %}
+<div class="d-flex flex-column mx-md-5 p-5">
+    {% block content %}{% endblock %}
+</div>
+
 <nav class="navbar navbar-light bg-light fixed-bottom">
     <div class="mx-auto order-0">
         {% block footer %}
