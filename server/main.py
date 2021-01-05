@@ -43,9 +43,32 @@ def remove_user():
     session.pop("cuwais_user", None)
 
 
+def make_nav_item(text, icon, active=False, link='#', data_toggle=None):
+    return dict(text=text, icon=icon, active=active, link=link, data_toggle=data_toggle)
+
+
+def make_l_nav(user):
+    items = []
+    return items
+
+
+def make_r_nav(user):
+    items = []
+    if user is None:
+        items.append(
+            make_nav_item(text='Log In', icon='fas fa-sign-in-alt', link='#loginModal', data_toggle='modal'))
+    else:
+        items.append(
+            make_nav_item(text='Log Out', icon='fas fa-sign-out-alt', link='/logout'))
+    return items
+
+
 def extract_session_objs():
+    user = get_user()
     return dict(
-        user=get_user()
+        user=user,
+        l_nav=make_l_nav(user),
+        r_nav=make_r_nav(user)
     )
 
 
@@ -55,6 +78,7 @@ def ensure_logged_in(f):
         if user is None:
             return redirect('/')
         return f()
+
     return f_new
 
 
@@ -110,4 +134,5 @@ if __name__ == "__main__":
         app.run(host="0.0.0.0", port=8080)
     else:
         from waitress import serve
+
         serve(app, host="0.0.0.0", port=8080)

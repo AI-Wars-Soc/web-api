@@ -50,48 +50,53 @@
 <!-- Style logic -->
 <script src="{{ url_for('static', filename='style.js') }}"></script>
 
+<!-- Navbar (top) -->
+{% macro nav_item(text, icon, active=False, link='#', data_toggle=None) -%}
+    <li class="nav-item">
+        <a class="nav-link {{ 'active' if active }}"
+           {% if data_toggle %} data-toggle="{{ data_toggle }}" {% endif %}
+           href="{{ link }}">
+            {{ text }}
+            &nbsp;
+            <i class="{{ icon }}"></i>
+        </a>
+    </li>
+{%- endmacro %}
+{% macro nav(items) -%}
+    {% for item in items %}
+        {{ nav_item(item.text, item.icon, item.active, item.link, item.data_toggle) }}
+    {% endfor %}
+{%- endmacro %}
 <div id="navbar">
-    {% block navbar %}
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="/">CUWAIS</a>
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-                        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
-                        {% if user is not none %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="/home">Home</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/submissions">Submissions</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/logout">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                    Log Out
-                                </a>
-                            </li>
-                        {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" data-toggle="modal" href="#loginModal">
-                                    <i class="fas fa-sign-in-alt"></i>
-                                    Log In
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    {% endblock %}
+    <nav class="navbar navbar-expand-md navbar-dark bg-primary">
+        <div class="navbar-collapse collapse w-100 order-1 order-md-0 dual-collapse2">
+            {% block navbar_left %}
+                <ul class="navbar-nav mr-auto">
+                    {{ nav(l_nav) }}
+                </ul>
+            {% endblock %}
+        </div>
+        <div class="mx-auto order-0">
+            {% block navbar_mid %}
+                <a class="navbar-brand mx-auto" href="#">CUWAIS</a>
+            {% endblock %}
+        </div>
+        <div class="collapse navbar-collapse w-100 order-3 dual-collapse2">
+            {% block navbar_end %}
+                <ul class="navbar-nav ml-auto">
+                    {{ nav(r_nav) }}
+                </ul>
+            {% endblock %}
+        </div>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target=".dual-collapse2">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </nav>
 </div>
 
 {% if user is none %}
     <!-- Login Modal -->
-    <div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    <div class="modal fade" id="loginModal" tabindex="-1" role="dialog"
          aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -140,9 +145,8 @@
 {% endif %}
 
 {% block content %}{% endblock %}
-
-<div class="navbar navbar-light bg-light fixed-bottom">
-    <div class="container">
+<nav class="navbar navbar-light bg-light fixed-bottom">
+    <div class="mx-auto order-0">
         {% block footer %}
             <ul class="navbar-nav">
                 <li class="nav-item">
@@ -151,6 +155,6 @@
             </ul>
         {% endblock %}
     </div>
-</div>
+</nav>
 </body>
 </html>
