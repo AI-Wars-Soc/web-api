@@ -43,12 +43,23 @@ def remove_user():
     session.pop("cuwais_user", None)
 
 
-def make_nav_item(text, icon, active=False, link='#', data_toggle=None):
+def make_nav_item(text, icon=None, active=False, link='#', data_toggle=None):
     return dict(text=text, icon=icon, active=active, link=link, data_toggle=data_toggle)
 
 
-def make_l_nav(user):
-    items = []
+def make_nav_item_from_name(name, current_dir):
+    is_active = (name == current_dir)
+    link = f'/{name}' if not is_active else '#'
+    return make_nav_item(text=name.capitalize(), link=link, active=is_active)
+
+
+def make_l_nav(user, current_dir):
+    places = []
+    if user is not None:
+        places += ['home', 'leaderboard', 'submissions']
+    places += ['about']
+
+    items = [make_nav_item_from_name(name, current_dir) for name in places]
     return items
 
 
@@ -56,18 +67,18 @@ def make_r_nav(user):
     items = []
     if user is None:
         items.append(
-            make_nav_item(text='Log In', icon='fas fa-sign-in-alt', link='#loginModal', data_toggle='modal'))
+            make_nav_item(text='Log In', icon='fa fa-sign-in', link='#loginModal', data_toggle='modal'))
     else:
         items.append(
-            make_nav_item(text='Log Out', icon='fas fa-sign-out-alt', link='/logout'))
+            make_nav_item(text='Log Out', icon='fa fa-sign-out', link='/logout'))
     return items
 
 
-def extract_session_objs():
+def extract_session_objs(current_dir):
     user = get_user()
     return dict(
         user=user,
-        l_nav=make_l_nav(user),
+        l_nav=make_l_nav(user, current_dir),
         r_nav=make_r_nav(user)
     )
 
@@ -79,6 +90,8 @@ def ensure_logged_in(f):
             return redirect('/')
         return f()
 
+    # Renaming the function name to appease flask
+    f_new.__name__ = f.__name__
     return f_new
 
 
@@ -87,9 +100,14 @@ def index():
     user = get_user()
     if user is not None:
         return redirect('/home')
+    return about()
+
+
+@app.route('/about')
+def about():
     return render_template(
-        'index.html',
-        **extract_session_objs()
+        'about.html',
+        **extract_session_objs('about')
     )
 
 
@@ -97,8 +115,26 @@ def index():
 @ensure_logged_in
 def home():
     return render_template(
-        'index.html',
-        **extract_session_objs()
+        'home.html',
+        **extract_session_objs('home')
+    )
+
+
+@app.route('/leaderboard')
+@ensure_logged_in
+def leaderboard():
+    return render_template(
+        'leaderboard.html',
+        **extract_session_objs('leaderboard')
+    )
+
+
+@app.route('/submissions')
+@ensure_logged_in
+def submissions():
+    return render_template(
+        'submissions.html',
+        **extract_session_objs('submissions')
     )
 
 
@@ -125,8 +161,17 @@ def logout():
 
     return render_template(
         'logout.html',
-        **extract_session_objs()
+        **extract_session_objs('logout')
     )
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    # note that we set the 404 status explicitly
+    return render_template(
+        '404.html',
+        **extract_session_objs('404')
+    ), 404
 
 
 if __name__ == "__main__":
