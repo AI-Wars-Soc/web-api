@@ -144,7 +144,17 @@ def me():
     )
 
 
-@app.route('/login_google', methods=['POST'])
+@app.route('/logout')
+def logout():
+    remove_user()
+
+    return render_template(
+        'logout.html',
+        **extract_session_objs('logout')
+    )
+
+
+@app.route('/api/login_google', methods=['POST'])
 def login_google():
     json = request.get_json()
     if 'idtoken' not in json:
@@ -161,14 +171,16 @@ def login_google():
                     mimetype='application/json')
 
 
-@app.route('/logout')
-def logout():
-    remove_user()
+@app.route('/api/get_leaderboard')
+def get_leaderboard():
+    # TODO: Cache this
+    scoreboard = cuwais.common.get_scoreboard()
 
-    return render_template(
-        'logout.html',
-        **extract_session_objs('logout')
-    )
+    encoded = cuwais.common.encode(scoreboard)
+
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
 
 
 @app.errorhandler(404)

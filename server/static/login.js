@@ -8,7 +8,7 @@ function onGoogleSignIn(googleUser) {
     const id_token = googleUser.getAuthResponse().id_token;
 
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/login_google');
+    xhr.open('POST', '/api/login_google');
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.onload = function () {
         if (xhr.status !== 200) {
