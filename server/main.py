@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import timedelta
+from typing import Optional
 
 import cuwais.common
 import redis
@@ -34,7 +35,7 @@ def save_user(user):
     session["cuwais_user"] = cuwais.common.encode(user)
 
 
-def get_user():
+def get_user() -> Optional[cuwais.common.User]:
     cuwais_user = cuwais.common.decode(session.get("cuwais_user", "null"))
     return cuwais_user
 
@@ -53,22 +54,24 @@ def make_nav_item_from_name(name, current_dir):
     return make_nav_item(text=name.capitalize(), link=link, active=is_active)
 
 
-def make_l_nav(user, current_dir):
+def make_l_nav(user: Optional[cuwais.common.User], current_dir):
     places = []
     if user is not None:
-        places += ['home', 'leaderboard', 'submissions']
+        places += ['leaderboard', 'submissions']
     places += ['about']
 
     items = [make_nav_item_from_name(name, current_dir) for name in places]
     return items
 
 
-def make_r_nav(user):
+def make_r_nav(user: Optional[cuwais.common.User], current_dir):
     items = []
     if user is None:
         items.append(
             make_nav_item(text='Log In', icon='fa fa-sign-in', link='#loginModal', data_toggle='modal'))
     else:
+        items.append(
+            make_nav_item(text=user.display_name, link='/me', active=(current_dir == 'me')))
         items.append(
             make_nav_item(text='Log Out', icon='fa fa-sign-out', link='/logout'))
     return items
@@ -79,7 +82,7 @@ def extract_session_objs(current_dir):
     return dict(
         user=user,
         l_nav=make_l_nav(user, current_dir),
-        r_nav=make_r_nav(user)
+        r_nav=make_r_nav(user, current_dir)
     )
 
 
@@ -102,7 +105,7 @@ def ensure_logged_in(f):
 def index():
     user = get_user()
     if user is not None:
-        return redirect('/home')
+        return redirect('/leaderboard')
     return redirect('/about')
 
 
@@ -111,15 +114,6 @@ def about():
     return render_template(
         'about.html',
         **extract_session_objs('about')
-    )
-
-
-@app.route('/home')
-@ensure_logged_in
-def home():
-    return render_template(
-        'home.html',
-        **extract_session_objs('home')
     )
 
 
@@ -138,6 +132,15 @@ def submissions():
     return render_template(
         'submissions.html',
         **extract_session_objs('submissions')
+    )
+
+
+@app.route('/me')
+@ensure_logged_in
+def me():
+    return render_template(
+        'me.html',
+        **extract_session_objs('me')
     )
 
 
