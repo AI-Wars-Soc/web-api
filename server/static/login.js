@@ -18,7 +18,7 @@ function onGoogleSignIn(googleUser) {
         const error_message = $("#login-error-msg");
         error_message.hide();
         console.log('Signed in as: ' + xhr.responseText);
-        window.location.replace("/home");
+        location.reload();
     };
     xhr.onerror = function () {
         onLoginFail(xhr.responseText);

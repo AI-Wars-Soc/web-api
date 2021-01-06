@@ -87,7 +87,10 @@ def ensure_logged_in(f):
     def f_new():
         user = get_user()
         if user is None:
-            return redirect('/')
+            return render_template(
+                'login-required.html',
+                **extract_session_objs('login-required')
+            )
         return f()
 
     # Renaming the function name to appease flask
@@ -100,7 +103,7 @@ def index():
     user = get_user()
     if user is not None:
         return redirect('/home')
-    return about()
+    return redirect('/about')
 
 
 @app.route('/about')
