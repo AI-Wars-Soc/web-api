@@ -174,9 +174,14 @@ def login_google():
 @app.route('/api/get_leaderboard')
 def get_leaderboard():
     # TODO: Cache this
-    scoreboard = cuwais.common.get_scoreboard()
+    partial_scoreboard = cuwais.common.get_scoreboard()
 
-    encoded = cuwais.common.encode(scoreboard)
+    full_scoreboard = []
+    for submission, score in partial_scoreboard:
+        user = cuwais.common.User.get(submission.user_id)
+        full_scoreboard.append(dict(submission=submission, user=user, score=score))
+
+    encoded = cuwais.common.encode(full_scoreboard)
 
     return Response(encoded,
                     status=200,

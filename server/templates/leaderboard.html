@@ -1,6 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Leaderboard</h1>
-  <p class="important">
-    Welcome to the leaderboard.
+    <h1>Leaderboard</h1>
+    <div class="px-3">
+        <p class="lead">
+            The current standings
+        </p>
+    </div>
+    <div class="d-flex flex-column mx-md-5 my-5 w-100" id="leaderboard">
+        <div class="d-flex flex-row w-100 m-1 m-md-2">
+            <div class="w-25 fw-bold">
+                Position
+            </div>
+            <div class="w-50 fw-bold">
+                User
+            </div>
+            <div class="w-25 fw-bold">
+                Score
+            </div>
+        </div>
+    </div>
+    <div class="px-3">
+        <p>
+            The leaderboard is calculated every few minutes, and your browser should automatically show the
+            new results when it is. There is no need to refresh this page
+        </p>
+    </div>
+
+    <script src="{{ url_for('static', filename='leaderboard.js') }}"></script>
 {% endblock %}
