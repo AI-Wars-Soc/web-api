@@ -154,6 +154,8 @@
     </div>
 {% endif %}
 
+<div id="react-root"></div>
+
 <div class="content">
     <div class="d-flex flex-column mx-md-5 p-2 p-sm-5">
         {% block content %}{% endblock %}
@@ -173,5 +175,9 @@
         </div>
     </nav>
 </div>
+
+<!-- Node -->
+<script src="{{ url_for('static', filename='dist/bundle.js') }}"></script>
+
 </body>
 </html>

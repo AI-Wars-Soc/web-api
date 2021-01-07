@@ -1,4 +1,14 @@
-let current_leaderboard = [];
+import React from 'react';
+
+class Leaderboard extends React.Component {
+    render() {
+        return (
+            <h1>Hello, World!</h1>
+        );
+    }
+}
+
+/*let current_leaderboard = [];
 
 function get_submission_id(i, l) {
     return l[i].submission.submission_id;
@@ -81,4 +91,6 @@ function hide_populate_and_show(entry, data, duration) {
 }
 
 get_and_update_leaderboard();
-window.setInterval(get_and_update_leaderboard, 5 * 60 * 1000);
+window.setInterval(get_and_update_leaderboard, 5 * 60 * 1000); */
+
+export default Leaderboard;
