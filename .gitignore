@@ -12,6 +12,7 @@ debug
 
 # npm packages
 server/static/node_modules
+server/static/package-lock.json
 
 # C extensions
 *.so
