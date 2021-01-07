@@ -5,9 +5,13 @@ __pycache__/
 
 # Temporary files
 tmp
+debug
 
 # Pycharm files
 **/.idea
+
+# npm packages
+server/static/node_modules
 
 # C extensions
 *.so

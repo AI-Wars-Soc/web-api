@@ -1,0 +1,30 @@
+{
+  "name": "cuwais-front-end",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack -p --progress --config webpack.config.js",
+    "dev-build": "webpack --progress -d --config webpack.config.js",
+    "watch": "webpack --progress -d --config webpack.config.js --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AI-Wars-Soc/front-end.git"
+  },
+  "author": "Joe O'Connor",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AI-Wars-Soc/front-end/issues"
+  },
+  "homepage": "https://github.com/AI-Wars-Soc/front-end#readme",
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@babel/preset-react": "^7.12.10",
+    "babel-loader": "^8.2.2",
+    "webpack": "^5.11.1",
+    "webpack-cli": "^4.3.1"
+  }
+}
