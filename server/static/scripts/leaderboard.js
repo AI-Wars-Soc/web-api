@@ -3,11 +3,10 @@ class Leaderboard {
         this.current_leaderboard = [];
     }
 
-    get_and_update_leaderboard() {
+    static get_and_update_leaderboard(leaderboard) {
         // Get
-        const l = this;
         $.getJSON('/api/get_leaderboard', function (data) {
-            l.update_leaderboard(data);
+            leaderboard.update_leaderboard(data);
         });
     }
 
@@ -18,12 +17,12 @@ class Leaderboard {
     static create_blank_entry(index) {
         const entry_id = Leaderboard.get_entry_id(index);
 
-        return $("<div />", { id: entry_id, })
-            .append($("<div />", { "class": "d-flex flex-row w-100 m-1 m-md-2" })
-                .append($("<div />", { "class": "w-25 leaderboard-position" }))
-                .append($("<div />", { "class": "w-50 leaderboard-name" }))
-                .append($("<div />", { "class": "w-25 leaderboard-score" }))
-        ).hide();
+        return $("<div />", {id: entry_id,})
+            .append($("<div />", {"class": "d-flex flex-row w-100 m-1 m-md-2"})
+                .append($("<div />", {"class": "w-25 leaderboard-position"}))
+                .append($("<div />", {"class": "w-50 leaderboard-name"}))
+                .append($("<div />", {"class": "w-25 leaderboard-score"}))
+            ).hide();
     }
 
     static get_leaderboard_item(index) {
@@ -37,13 +36,24 @@ class Leaderboard {
         entry.find(".leaderboard-score").text(data.score);
     }
 
+    static get_pos(last_pos, data) {
+        if (data.score === last_pos.score) {
+            return {pos: last_pos.pos, score: data.score, same: true};
+        }
+        return {pos: last_pos.pos + 1, score: data.score, same: false};
+    }
+
     update_leaderboard(new_leaderboard) {
         const duration = 1000;
         const delta = 250;
 
         // Remove excess
         for (let i = new_leaderboard.length; i < this.current_leaderboard.length; i++) {
-            Leaderboard.get_leaderboard_item(i).remove();
+            const delay = delta * i;
+            const entry = Leaderboard.get_leaderboard_item(i);
+            window.setTimeout(Leaderboard.hide_and_execute, delay, entry, duration, function () {
+                Leaderboard.delete(entry);
+            });
         }
 
         // Add new blanks
@@ -53,24 +63,38 @@ class Leaderboard {
         }
 
         // Fade all out
+        let last_pos = {pos: 0, score: Infinity, same: false};
         for (let i = 0; i < new_leaderboard.length; i++) {
             const delay = delta * i;
             const entry = Leaderboard.get_leaderboard_item(i);
             const data = new_leaderboard[i];
-            window.setTimeout(Leaderboard.hide_populate_and_show, delay, entry, data, duration);
+            const pos = Leaderboard.get_pos(last_pos, data);
+            const pos_str = (pos.same ? "=" : "") + pos.pos;
+            window.setTimeout(Leaderboard.hide_and_execute, delay, entry, duration, function () {
+                Leaderboard.populate_and_show(entry, data, duration, pos_str);
+            });
+            last_pos = pos;
         }
 
         this.current_leaderboard = new_leaderboard;
     }
 
-    static hide_populate_and_show(entry, data, duration) {
+    static hide_and_execute(entry, duration, f) {
         entry.hide("slide", {direction: "left"}, duration, function () {
-            Leaderboard.populate_leaderboard_item(entry, data, "1");
-            entry.show("slide", {direction: "right"}, duration);
+            f();
         });
+    }
+
+    static delete(entry) {
+        $(entry).remove();
+    }
+
+    static populate_and_show(entry, data, duration, position) {
+        Leaderboard.populate_leaderboard_item(entry, data, position);
+        entry.show("slide", {direction: "right"}, duration);
     }
 }
 
 const leaderboard = new Leaderboard();
-leaderboard.get_and_update_leaderboard();
-window.setInterval(leaderboard.get_and_update_leaderboard, 5 * 60 * 1000);
+Leaderboard.get_and_update_leaderboard(leaderboard);
+window.setInterval(Leaderboard.get_and_update_leaderboard, 5 * 60 * 1000, leaderboard);
