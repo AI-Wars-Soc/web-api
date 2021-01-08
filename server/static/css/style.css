@@ -4,6 +4,8 @@ html, body {
 body {
   display: flex;
   flex-direction: column;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 .content {
   flex: 1 0 auto;

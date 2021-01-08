@@ -6,9 +6,7 @@ services:
     ports:
       - "80:8080"
     volumes:
-      - "./server/templates:/home/web_user/server/templates"
-      - "./server/main.py:/home/web_user/server/main.py"
-      - "./server/login.py:/home/web_user/server/login.py"
+      - "./server:/home/web_user/server"
     networks:
       - database
       - redis

@@ -173,12 +173,20 @@ def login_google():
 
 @app.route('/api/get_leaderboard')
 def get_leaderboard():
+    user = get_user()
+    user_id = None if user is None else user.user_id
+
     # TODO: Cache this
     partial_scoreboard = cuwais.common.get_scoreboard()
 
     full_scoreboard = []
     for submission, score in partial_scoreboard:
         user = cuwais.common.User.get(submission.user_id)
+
+        # Remove hidden data
+        if user_id != user.user_id:
+            submission.url = "[HIDDEN]"
+
         full_scoreboard.append(dict(submission=submission, user=user, score=score))
 
     encoded = cuwais.common.encode(full_scoreboard)

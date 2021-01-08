@@ -1,23 +1,20 @@
 class Logout {
-    onGoogleLoginSucc() {
+    static onGoogleSignIn() {
         console.log("Signed in to google");
         const auth2 = gapi.auth2.getAuthInstance();
-        const t = this;
         auth2.signOut().then(function () {
-            t.allLoggedOut();
+            Logout.allLoggedOut();
         });
     }
 
-    onGoogleLoginFail(error) {
+    static onGoogleLoginFail(error) {
         console.log("Could not sign in to google");
         console.log(error);
 
-        this.allLoggedOut();
+        Logout.allLoggedOut();
     }
 
-    allLoggedOut() {
+    static allLoggedOut() {
         window.location.replace("/");
     }
 }
-
-export default Logout;

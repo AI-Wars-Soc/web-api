@@ -10,7 +10,16 @@
     </div>
 {% endblock %}
 {% block modal %}
+    <script src="{{ url_for('static', filename='scripts/logout.js') }}"></script>
+    <script>
+        function onGoogleSignIn(e) {
+            return Logout.onGoogleSignIn(e);
+        }
+        function onGoogleFail(e) {
+            return Logout.onGoogleLoginFail(e);
+        }
+    </script>
     <!-- Google login -->
-    <div class="g-signin2" data-width="10" data-height="10" data-onsuccess="Logout.onGoogleLoginSucc"
-         data-onfailure="Logout.onGoogleLoginFail" hidden></div>
+    <div class="g-signin2" data-width="10" data-height="10" data-onsuccess="onGoogleSignIn"
+         data-onfailure="onGoogleFail" hidden></div>
 {% endblock %}
