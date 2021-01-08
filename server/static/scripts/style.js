@@ -1,39 +1,48 @@
-bootswatchLight = $("#bootswatch-light");
-bootswatchDark = $("#bootswatch-dark");
-bootswatchActive = $("#bootswatch-active");
+import Cookies from "js-cookie";
+import $ from "jquery";
 
-function copyRef(source) {
-    bootswatchActive.attr({
-        integrity: source.attr('integrity'),
-        href: source.attr('href')
-    });
-}
+const COOKIE_NAME = 'CUWAIS_THEME';
 
-function setLight() {
-    copyRef(bootswatchLight);
+class Style {
+    constructor() {
+        this.bootswatchLight = $("#bootswatch-light");
+        this.bootswatchDark = $("#bootswatch-dark");
+        this.bootswatchActive = $("#bootswatch-active");
+    }
 
-    Cookies.set('theme', 'light');
-}
+    copyRef(source) {
+        this.bootswatchActive.attr({
+            integrity: source.attr('integrity'),
+            href: source.attr('href')
+        });
+    }
 
-function setDark() {
-    copyRef(bootswatchDark);
+    setLight() {
+        this.copyRef(this.bootswatchLight);
 
-    Cookies.set('theme', 'dark');
-}
+        Cookies.set(COOKIE_NAME, 'light');
+    }
 
-function loadTheme() {
-    const theme = Cookies.get('theme');
-    switch (theme) {
-        case 'light':
-            setLight();
-            break;
-        case 'dark':
-            setDark();
-            break;
-        default:
-            setLight();
-            break;
+    setDark() {
+        this.copyRef(this.bootswatchDark);
+
+        Cookies.set(COOKIE_NAME, 'dark');
+    }
+
+    loadTheme() {
+        const theme = Cookies.get(COOKIE_NAME);
+        switch (theme) {
+            case 'light':
+                this.setLight();
+                break;
+            case 'dark':
+                this.setDark();
+                break;
+            default:
+                this.setLight();
+                break;
+        }
     }
 }
 
-loadTheme();
+export default Style;

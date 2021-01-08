@@ -1,21 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Logout</title>
-</head>
-<body>
-
-<!-- Google login -->
-<script src="https://apis.google.com/js/platform.js" async defer></script>
-<meta name="google-signin-client_id" content="389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com">
-<div class="g-signin2" data-width="10" data-height="10" data-onsuccess="onGoogleLoginSucc"
-     data-onfailure="onGoogleLoginFail" hidden></div>
-
-<!-- Logout logic -->
-<script src="{{ url_for('static', filename='logout.js') }}"></script>
-
-You should be logged out in a few seconds. If that doesn't happen, <a href="/">click here</a>
-
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+    <h2>
+        Logging you out
+    </h2>
+    <div class="px-3">
+        <p class="lead">
+            You should be redirected in a few seconds. If that doesn't happen, <a href="/">click here</a>
+        </p>
+    </div>
+{% endblock %}
+{% block modal %}
+    <!-- Google login -->
+    <div class="g-signin2" data-width="10" data-height="10" data-onsuccess="Logout.onGoogleLoginSucc"
+         data-onfailure="Logout.onGoogleLoginFail" hidden></div>
+{% endblock %}

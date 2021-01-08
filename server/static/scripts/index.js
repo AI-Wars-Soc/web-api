@@ -1,5 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import Leaderboard from "./leaderboard";
+import 'bootstrap';
+import Login from "./login";
+import Style from "./style";
+import Logout from "./logout";
 
-ReactDOM.render(<Leaderboard />, document.getElementById("react-root"));
+window.Login = new Login();
+window.Logout = new Logout();
+window.Style = new Style();
+
+window.addEventListener('DOMContentLoaded', (event) => {
+    console.log('DOM fully loaded and parsed');
+});
+
+window.Style.loadTheme();

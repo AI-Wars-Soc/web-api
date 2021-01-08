@@ -5,55 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
-
     <!-- Bootswatch -->
-    <link rel="stylesheet" integrity=sha384-qF/QmIAj5ZaYFAeQcrQ6bfVMAh4zZlrGwTPY7T/M+iTTLJqJBJjwwnsE5Y0mV7QK",
-          href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/flatly/bootstrap.min.css" crossorigin="anonymous"
-          id="bootswatch-light">
     <link rel="stylesheet" integrity=sha384-nNK9n28pDUDDgIiIqZ/MiyO3F4/9vsMtReZK39klb/MtkZI3/LtjSjlmyVPS3KdN",
           href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css" crossorigin="anonymous"
           id="bootswatch-dark">
+    <link rel="stylesheet" integrity=sha384-qF/QmIAj5ZaYFAeQcrQ6bfVMAh4zZlrGwTPY7T/M+iTTLJqJBJjwwnsE5Y0mV7QK",
+          href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/flatly/bootstrap.min.css" crossorigin="anonymous"
+          id="bootswatch-light">
     <link rel="stylesheet" crossorigin="anonymous"
           id="bootswatch-active">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- npm -->
+    <script src="{{ url_for('static', filename='dist/bundle.js') }}"></script>
 
     <!-- Font Awesome js -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
-    <!-- Cookies -->
-    <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
-
-    <!-- jQuery, jQuery UI, Bootstrap and popper -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"
-            integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
-            crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
-            integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-            crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
-            crossorigin="anonymous"></script>
-
     {% if user is none %}
         <!-- Google login -->
-        <script src="https://apis.google.com/js/platform.js?onload=googleInit" async defer></script>
+        <script src="https://apis.google.com/js/platform.js?onload=Login.googleInit" async defer></script>
         <meta name="google-signin-client_id"
               content="389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com">
-
-        <!-- Login logic -->
-        <script src="{{ url_for('static', filename='login.js') }}"></script>
     {% endif %}
-
-    <!-- Style logic -->
-    <script src="{{ url_for('static', filename='style.js') }}"></script>
 
     <title>CUWAIS</title>
 </head>
@@ -104,55 +80,53 @@
     </nav>
 </div>
 
-{% if user is none %}
-    <!-- Login Modal -->
-    <div class="modal fade" id="loginModal" tabindex="-1" role="dialog"
-         aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="loginModalLabel">Login</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <h4 class="card-title mb-4 mt-1">Sign in</h4>
-                    <div class="d-grid gap-3">
-                        <p>
-                            Due to a lack of time and competence we do not have our own system for securely storing
-                            passwords.
-                            Please use someone else's:
-                        </p>
-                        <div class="d-flex justify-content-center">
-                            <div class="g-signin2" data-width="300" data-height="50" data-longtitle="true"
-                                 data-onsuccess="onGoogleSignIn" data-onfailure="onLoginFail"
-                                    {% if light_mode is true %}
-                                 data-theme="light"
-                                    {% else %}
-                                 data-theme="dark"
-                                    {% endif %}>
+<!-- Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1" role="dialog"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            {% block modal %}
+                {% if user is none %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="loginModalLabel">Login</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <h4 class="card-title mb-4 mt-1">Sign in</h4>
+                        <div class="d-grid gap-3">
+                            <p>
+                                Due to a lack of time and competence we do not have our own system for securely storing
+                                passwords.
+                                Please use someone else's:
+                            </p>
+                            <div class="d-flex justify-content-center">
+                                <div class="g-signin2" data-width="300" data-height="50" data-longtitle="true"
+                                     data-onsuccess="Login.onGoogleSignIn" data-onfailure="Login.onLoginFail"
+                                     data-theme="light">
+                                </div>
+                            </div>
+                            <div id="login-error-msg"
+                                 class="p-2 bg-danger text-white text-center border border-danger rounded"
+                                 style="display:none">
+                                Something went wrong. Please ensure you are using your university email address and try
+                                again
+                                (or let Joe know)
+                            </div>
+                            <div class="p-2 text-center border border-danger rounded">
+                                Please login with your Cambridge (crsid@cam.ac.uk) account
                             </div>
                         </div>
-                        <div id="login-error-msg"
-                             class="p-2 bg-danger text-white text-center border border-danger rounded"
-                             style="display:none">
-                            Something went wrong. Please ensure you are using your university email address and try
-                            again
-                            (or let Joe know)
-                        </div>
-                        <div class="p-2 text-center border border-danger rounded">
-                            Please login with your Cambridge (crsid@cam.ac.uk) account
-                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                {% endif %}
+            {% endblock %}
         </div>
     </div>
-{% endif %}
+</div>
 
 <div id="react-root"></div>
 
@@ -175,9 +149,6 @@
         </div>
     </nav>
 </div>
-
-<!-- Node -->
-<script src="{{ url_for('static', filename='dist/bundle.js') }}"></script>
 
 </body>
 </html>
