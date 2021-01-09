@@ -13,3 +13,15 @@ body {
 .footer {
   flex-shrink: 0;
 }
+
+.leaderboard-position {
+  width: 25%;
+  max-width: 80px;
+}
+.leaderboard-name {
+  width: 50%;
+}
+.leaderboard-score {
+  width: 25%;
+  max-width: 80px;
+}
