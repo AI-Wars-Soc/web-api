@@ -33,7 +33,7 @@ class Leaderboard {
         entry = $(entry);
         entry.find(".leaderboard-position").text(position);
         entry.find(".leaderboard-name").text(data.user.display_name);
-        entry.find(".leaderboard-score").text(data.score);
+        entry.find(".leaderboard-score").text(Math.round((data.score + Number.EPSILON) * 10) / 10);
     }
 
     static get_pos(last_pos, data) {
