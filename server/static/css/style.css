@@ -14,14 +14,36 @@ body {
   flex-shrink: 0;
 }
 
+#leaderboard {
+
+}
 .leaderboard-position {
-  width: 25%;
-  max-width: 80px;
+  width: 100px;
+  text-align: center;
 }
 .leaderboard-name {
-  width: 50%;
+  flex-grow: 1;
 }
 .leaderboard-score {
-  width: 25%;
-  max-width: 80px;
+  width: 100px;
+  text-align: end;
+}
+.leaderboard-submission {
+  border-width: 2px;
+  border-style: solid;
+  border-color: transparent;
+  border-radius: 20px;
+  margin: 4px;
+}
+.leaderboard-user-submission {
+  border-width: 6px;
+  border-style: double;
+  border-color: var(--bs-cyan);
+  margin: 0;
+}
+.leaderboard-bot-submission {
+  border-color: var(--bs-red);
+}
+.leaderboard-other-submission {
+  border-color: var(--bs-secondary);
 }

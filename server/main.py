@@ -182,12 +182,13 @@ def get_leaderboard():
     full_scoreboard = []
     for submission, score in partial_scoreboard:
         user = cuwais.common.User.get(submission.user_id)
+        is_user = user_id == user.user_id
 
-        # Remove hidden data
-        if user_id != user.user_id:
+        if not is_user:
+            # Remove hidden data
             submission.url = "[HIDDEN]"
 
-        full_scoreboard.append(dict(submission=submission, user=user, score=score))
+        full_scoreboard.append(dict(submission=submission, user=user, score=score, is_you=is_user))
 
     encoded = cuwais.common.encode(full_scoreboard)
 
