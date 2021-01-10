@@ -5,7 +5,7 @@ body {
   display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 .content {
   flex: 1 0 auto;
@@ -15,7 +15,6 @@ body {
 }
 
 #leaderboard {
-
 }
 .leaderboard-position {
   width: 100px;
