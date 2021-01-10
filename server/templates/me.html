@@ -1,6 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Me</h1>
-  <p class="important">
-    This is your settings page
+    <h1>{{ user.display_name }}</h1>
+    <p class="important">
+        This is your settings page
+    </p>
+    <div class="custom-control custom-switch">
+        <script>
+            function changeTheme(v) {
+                if (v.checked) {
+                    Style.setDark();
+                } else {
+                    Style.setLight();
+                }
+            }
+
+            window.onload = function () {
+                const v = $("#darkModeSwitch");
+                v.prop('checked', Style.getTheme() !== "light");
+            }
+        </script>
+        <input type="checkbox" class="custom-control-input" id="darkModeSwitch"
+               onchange="changeTheme(this)">
+        <label class="custom-control-label" for="darkModeSwitch">Dark Mode</label>
+    </div>
 {% endblock %}

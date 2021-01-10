@@ -25,7 +25,7 @@ class Style {
     }
 
     static loadTheme() {
-        const theme = Cookies.get(STYLE_COOKIE_NAME);
+        const theme = Style.getTheme();
         switch (theme) {
             case 'light':
                 Style.setLight();
@@ -37,6 +37,10 @@ class Style {
                 Style.setLight();
                 break;
         }
+    }
+
+    static getTheme() {
+        return Cookies.get(STYLE_COOKIE_NAME);
     }
 }
 
