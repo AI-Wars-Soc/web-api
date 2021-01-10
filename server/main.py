@@ -1,3 +1,5 @@
+import base64
+import hashlib
 import logging
 import os
 from datetime import timedelta
@@ -101,6 +103,25 @@ def ensure_logged_in(f):
     return f_new
 
 
+def generate_sri(inp_file):
+    hashed = hashlib.sha256()
+
+    file = os.path.join(os.path.dirname(os.path.abspath(__file__)), inp_file[1:])
+    print(file, flush=True)
+    with open(file, 'rb') as f:
+        while True:
+            data = f.read(65536)
+            if not data:
+                break
+            hashed.update(data)
+    hashed = hashed.digest()
+    hash_base64 = base64.b64encode(hashed).decode('utf-8')
+    return 'sha256-{}'.format(hash_base64)
+
+
+app.jinja_env.globals['sri'] = generate_sri
+
+
 @app.route('/')
 def index():
     user = get_user()
@@ -154,6 +175,14 @@ def logout():
     )
 
 
+@app.route('/enable-js')
+def please_enable_js():
+    return render_template(
+        'please_enable_js.html',
+        **extract_session_objs('please_enable_js')
+    )
+
+
 @app.route('/api/login_google', methods=['POST'])
 def login_google():
     json = request.get_json()
@@ -192,6 +221,28 @@ def get_leaderboard():
 
     encoded = cuwais.common.encode(full_scoreboard)
 
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/api/add_submission', methods=['POST'])
+@ensure_logged_in
+def add_submission():
+    user = get_user()
+    json = request.get_json()
+    url = json["url"]
+
+    # TODO: Validate URL
+
+    try:
+        submission = cuwais.common.Submission.create(user, url)
+    except cuwais.common.InvalidRequestError as e:
+        return Response({"error": str(e)},
+                        status=500,
+                        mimetype='application/json')
+
+    encoded = cuwais.common.encode(submission)
     return Response(encoded,
                     status=200,
                     mimetype='application/json')

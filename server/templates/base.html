@@ -43,14 +43,18 @@
             crossorigin="anonymous"></script>
 
     <!-- CUWAIS Scripts -->
-    <script src="{{ url_for('static', filename='scripts/style.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/style.js') }}"
+            integrity="{{ sri(url_for('static', filename='scripts/style.js')) }}"
+            crossorigin="anonymous"></script>
 
     <!-- Font Awesome js -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
     {% if user is none %}
-    <script src="{{ url_for('static', filename='scripts/login.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/login.js') }}"
+            integrity="{{ sri(url_for('static', filename='scripts/login.js')) }}"
+            crossorigin="anonymous"></script>
 
     <!-- Google login -->
     <script src="https://apis.google.com/js/platform.js?onload=Login.googleInit" async defer></script>
