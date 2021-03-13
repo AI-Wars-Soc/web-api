@@ -20,7 +20,8 @@ services:
   database:
     image: aiwarssoc/database
     volumes:
-      - "./debug/database:/database"
+      - "./tmp/database:/database"
+      - "./tmp/repositories:/repositories"
     networks:
       database:
         aliases:
@@ -32,10 +33,11 @@ services:
       INITIAL_SCORE: 1000
       SCORE_TURBULENCE_MILLIS: 5000
       HEALTH_BUFFER: 100
+      MAX_REPO_SIZE_BYTES: 10000000
   redis:
     image: redis
     volumes:
-      - "./debug/redis:/data"
+      - "./tmp/redis:/data"
     command: "--appendonly yes"
     networks:
       redis:

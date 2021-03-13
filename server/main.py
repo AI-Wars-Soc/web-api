@@ -232,9 +232,6 @@ def add_submission():
     user = get_user()
     json = request.get_json()
     url = json["url"]
-
-    # TODO: Validate URL
-
     try:
         submission = cuwais.common.Submission.create(user, url)
     except cuwais.common.InvalidRequestError as e:
