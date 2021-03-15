@@ -230,13 +230,15 @@ def get_leaderboard():
 @ensure_logged_in
 def add_submission():
     user = get_user()
-    json = request.get_json()
+    json = request.json
     url = json["url"]
     try:
-        submission = cuwais.common.Submission.create(user, url)
+        submission = cuwais.common.Submission.create(user.user_id, url)
     except cuwais.common.InvalidRequestError as e:
-        return Response({"error": str(e)},
-                        status=500,
+        print(e.error, flush=True)
+        encoded = cuwais.common.encode(e.error)
+        return Response(encoded,
+                        status=200,
                         mimetype='application/json')
 
     encoded = cuwais.common.encode(submission)

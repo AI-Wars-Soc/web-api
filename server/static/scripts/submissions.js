@@ -1,7 +1,14 @@
 $('#submission-form').submit(function(e){
     e.preventDefault();
-    const url = $("#repo").text();
-    $.post("/api/add_submission", JSON.stringify({url: url}), function(receivedData){
-        console.log(receivedData);
-    });
+    const url = $("#repo").val();
+    $.post(
+        {
+            url: "/api/add_submission",
+            data: JSON.stringify({url: url}),
+            contentType: 'application/json',
+            success: function(receivedData){
+                console.log(receivedData);
+            }
+        }
+    );
 });
