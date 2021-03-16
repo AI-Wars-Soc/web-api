@@ -17,13 +17,14 @@ class Leaderboard {
 
     static create_blank_entry(index) {
         const entry_id = Leaderboard.get_entry_id(index);
-
         return $("<div />", {id: entry_id})
-            .append($("<div />", {"class": "p-1 p-md-2"})
-                .append($("<div />", {"class": "leaderboard-entry-child-container d-flex flex-row p-2 p-md-3 leaderboard-submission"})
-                    .append($("<div />", {"class": "leaderboard-position fw-bold"}))
-                    .append($("<div />", {"class": "leaderboard-name"}))
-                    .append($("<div />", {"class": "leaderboard-score"}))
+            .append($("<div />", {"class": "p-1 px-md-5"})
+                .append($("<div />", {"class": "px-lg-5 d-flex justify-content-center"})
+                    .append($("<div />", {"class": "leaderboard-entry-child-container d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission"})
+                        .append($("<div />", {"class": "leaderboard-position fw-bold"}))
+                        .append($("<div />", {"class": "leaderboard-name"}))
+                        .append($("<div />", {"class": "leaderboard-score"}))
+                    )
                 )
             ).hide();
     }

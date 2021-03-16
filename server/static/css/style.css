@@ -16,6 +16,9 @@ body {
 
 #leaderboard {
 }
+.leaderboard-entry-child-container {
+  max-width: 1000px;
+}
 .leaderboard-position {
   width: 100px;
   text-align: center;
