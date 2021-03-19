@@ -21,6 +21,9 @@ body {
 
 #leaderboard {
 }
+.leaderboard-entry-child-container {
+
+}
 .leaderboard-position {
   width: 100px;
   text-align: center;

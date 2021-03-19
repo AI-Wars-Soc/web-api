@@ -20,7 +20,7 @@ class Leaderboard {
         return $("<div />", {id: entry_id})
             .append($("<div />", {"class": "p-1 px-md-5"})
                 .append($("<div />", {"class": "px-lg-5 d-flex justify-content-center"})
-                    .append($("<div />", {"class": "max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission"})
+                    .append($("<div />", {"class": "leaderboard-entry-child-container max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission"})
                         .append($("<div />", {"class": "leaderboard-position fw-bold"}))
                         .append($("<div />", {"class": "leaderboard-name"}))
                         .append($("<div />", {"class": "leaderboard-score"}))
