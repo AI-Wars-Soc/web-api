@@ -14,6 +14,7 @@ $('#submission-form').submit(function(e){
                 if (t === "submission") {
                     submission_error_box.hide();
                     repo_box.val("");
+                    window.location.reload();
                 } else if (t === "error") {
                     submission_error_box.text(receivedData.error_message);
                     repo_box.effect("shake");

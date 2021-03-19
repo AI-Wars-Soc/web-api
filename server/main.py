@@ -150,8 +150,11 @@ def leaderboard():
 @app.route('/submissions')
 @ensure_logged_in
 def submissions():
+    subs = get_user().get_all_submissions()
+    subs.sort(key=lambda s: s.submission_date)
     return render_template(
         'submissions.html',
+        submissions=subs,
         **extract_session_objs('submissions')
     )
 

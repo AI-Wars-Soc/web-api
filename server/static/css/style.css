@@ -14,10 +14,12 @@ body {
   flex-shrink: 0;
 }
 
-#leaderboard {
-}
-.leaderboard-entry-child-container {
+.max-width-center {
   max-width: 1000px;
+  width: 100% !important;
+}
+
+#leaderboard {
 }
 .leaderboard-position {
   width: 100px;
@@ -48,4 +50,21 @@ body {
 }
 .leaderboard-other-submission {
   border-color: var(--bs-secondary);
+}
+
+.submission-index {
+  width: 50px;
+  text-align: left;
+}
+.submission-date {
+  flex-grow: 1;
+  text-align: left;
+}
+.submission-active {
+  width: 100px;
+  text-align: end;
+}
+.submission-submit-button {
+  max-width: 100px;
+  width: 100% !important;
 }
