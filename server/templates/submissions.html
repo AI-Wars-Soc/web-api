@@ -9,15 +9,6 @@
         </p>
     </div>
     <!-- Submissions -->
-    <script>
-        function setSubmissionEnabledSwitch(v, id) {
-            if (v.checked) {
-                Submissions.set_enabled(id, true);
-            } else {
-                Submissions.set_enabled(id, false);
-            }
-        }
-    </script>
     {% macro submission(number, id, date, active, selected) -%}
         <div class="px-lg-5 d-flex justify-content-center">
             <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 submission-entry {{ 'submission-entry-active' if active }} {{ 'submission-entry-selected' if selected }}">
@@ -37,7 +28,7 @@
                     <div class="custom-control custom-switch">
                         <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
                                {% if active %} checked {% endif %}
-                               onchange="setSubmissionEnabledSwitch(this, {{- id -}})">
+                               onchange="Submissions.setSubmissionEnabledSwitch(this, {{- id -}})">
                         <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
                     </div>
                 </div>

@@ -33,9 +33,7 @@ def get_user_from_id(database_session: Session, user_id) -> Optional[User]:
     if user_id is None:
         return None
 
-    return database_session.execute(
-        select(User).where(User.id == user_id)
-    ).scalar_one_or_none()
+    return database_session.query(User).get(user_id)
 
 
 def remove_user():
@@ -108,3 +106,23 @@ def get_current_submission(database_session, user_id):
         return None
 
     return subq[0]
+
+
+def submission_is_owned_by_user(database_session, submission_id: int, user_id: int):
+    res = database_session.query(Submission).get(submission_id)
+
+    if res is None:
+        return False
+
+    return res.user_id == user_id
+
+
+def set_submission_enabled(database_session, submission_id: int, enabled: bool):
+    res = database_session.query(Submission).get(submission_id)
+
+    if res is None:
+        return
+
+    res.active = enabled
+
+    database_session.commit()

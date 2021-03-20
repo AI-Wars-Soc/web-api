@@ -165,7 +165,7 @@ def get_leaderboard(user_id):
                     mimetype='application/json')
 
 
-def _make_submission_failure(message):
+def _make_api_failure(message):
     encoded = json.dumps({"status": "fail", "message": message})
     return Response(encoded,
                     status=400,
@@ -180,11 +180,11 @@ def add_submission(user_id):
     try:
         submission_id = data.create_submission(user_id, url)
     except repo.InvalidGitURL:
-        return _make_submission_failure("Invalid GIT URL")
+        return _make_api_failure("Invalid GIT URL")
     except repo.AlreadyExistsException:
-        return _make_submission_failure("GIT repo already submitted")
+        return _make_api_failure("GIT repo already submitted")
     except repo.RepoTooBigException:
-        return _make_submission_failure("GIT repo is too large!")
+        return _make_api_failure("GIT repo is too large!")
 
     encoded = json.dumps({"status": "success", "submission_id": submission_id})
     return Response(encoded,
@@ -199,7 +199,16 @@ def set_submission_active(user_id):
     submission_id = json_in["submission_id"]
     enabled = json_in["enabled"]
 
-    print(user_id, submission_id, enabled, flush=True)
+    with cuwais.database.create_session() as database_session:
+        if not data.submission_is_owned_by_user(database_session, submission_id, user_id):
+            return _make_api_failure("You do not own that submission!")
+
+        data.set_submission_enabled(database_session, submission_id, enabled)
+
+    encoded = json.dumps({"status": "success", "submission_id": submission_id})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
 
 
 @app.errorhandler(404)
