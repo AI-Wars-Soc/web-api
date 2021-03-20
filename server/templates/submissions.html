@@ -24,8 +24,14 @@
                 <div class="p-1 submission-index">
                     {{ number }}
                 </div>
-                <div class="p-1 submission-date d-none d-sm-block">
-                    Submitted {{ date.strftime('%d %b at %I:%M') }}
+                <div class="p-1 submission-date d-none d-md-block">
+                    Submitted {{ date.strftime('%d %b at %I:%M %p') }}
+                </div>
+                <div class="p-1 submission-date d-none d-sm-block d-md-none">
+                    Submitted {{ date.strftime('%d/%m %H:%M') }}
+                </div>
+                <div class="p-1 submission-date d-sm-none">
+                    {{ date.strftime('%d/%m %H:%M') }}
                 </div>
                 <div class="p-1 submission-active">
                     <div class="custom-control custom-switch">

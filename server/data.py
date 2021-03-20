@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict, Union, Any
 
 import cuwais
 from cuwais.database import User, Submission, Result, Match
@@ -56,40 +56,23 @@ def make_or_get_google_user(google_id, name) -> int:
         return user.id
 
 
-def get_scoreboard() -> List[Tuple[dict, int]]:
+def get_scoreboard() -> List[Dict[str, Any]]:
     with cuwais.database.create_session() as database_session:
-        subq = database_session.query(
-            Submission.user_id,
-            func.max(Submission.submission_date).label('maxdate')
-        ).group_by(Submission.user_id) \
-            .filter(Submission.active == True) \
-            .subquery('t2')
-
-        most_recent_submissions = database_session.query(Submission).join(
-            subq,
-            and_(
-                Submission.user_id == subq.c.user_id,
-                Submission.submission_date == subq.c.maxdate
-            )
-        ).subquery('t3')
-
         user_scores = database_session.query(
-            Submission.user_id,
-            func.sum(Result.milli_points_delta)
+            User,
+            func.sum(Result.milli_points_delta).label("total_score")
         ).filter(Result.submission_id == Submission.id) \
-            .group_by(Submission.user_id) \
-            .join(
-            most_recent_submissions,
-            and_(
-                Submission.user_id == most_recent_submissions.c.user_id
-            )
-        ).all()
+            .filter(User.id == Submission.user_id) \
+            .group_by(User.id) \
+            .order_by("total_score") \
+            .all()
 
-        init = int(os.getenv("INITIAL_SCORE")) * 1000
+    init = int(os.getenv("INITIAL_SCORE"))
+    scores = [{"user": user.to_public_dict(),
+               "score": init + (score / 1000)}
+              for [user, score] in user_scores]
 
-        results = [(a, b + init) for [a, b] in user_scores]
-
-    return sorted(results, key=lambda t: t[1], reverse=True)
+    return scores
 
 
 def get_all_user_submissions(database_session: Session, user_id: int, private=False) -> List[dict]:
@@ -97,10 +80,7 @@ def get_all_user_submissions(database_session: Session, user_id: int, private=Fa
         select(Submission).where(Submission.user_id == user_id).order_by(Submission.submission_date)
     ).all()
 
-    print("==================================================")
-    print(subs, flush=True)
-
-    return [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in subs]
+    return [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in reversed(subs)]
 
 
 def create_submission(user_id: int, url: str) -> int:

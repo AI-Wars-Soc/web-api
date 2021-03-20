@@ -158,18 +158,16 @@ def login_google():
 def get_leaderboard(user_id):
     scoreboard = data.get_scoreboard()
 
-    print("scoreboard: ", scoreboard, flush=True)
-
-    return Response(json.dumps(scoreboard),
+    return Response(json.dumps(scoreboard, default=str),
                     status=200,
                     mimetype='application/json')
 
 
 def _make_submission_failure(message):
-        encoded = json.dumps({"status": "fail", "message": message})
-        return Response(encoded,
-                        status=400,
-                        mimetype='application/json')
+    encoded = json.dumps({"status": "fail", "message": message})
+    return Response(encoded,
+                    status=400,
+                    mimetype='application/json')
 
 
 @app.route('/api/add_submission', methods=['POST'])
