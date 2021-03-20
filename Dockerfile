@@ -1,8 +1,8 @@
 # Dockerfile for sandbox in which python 3 code is run
-FROM debian
+FROM python:3-buster
 
 # Install python
-RUN apt-get update && apt-get -y install python3 python3-pip
+# RUN apt-get update && apt-get -y install python3 python3-pip
 
 # Set up user
 RUN useradd --create-home --shell /bin/bash web_user --uid 1920
