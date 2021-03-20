@@ -6,8 +6,8 @@ import os
 from datetime import timedelta
 
 import cuwais
+import cuwais.database
 import redis
-from cuwais.database import User
 from flask import Flask, render_template, request, abort, Response, redirect
 from flask_session import Session
 
@@ -142,7 +142,7 @@ def login_google():
     user_id = login.get_user_id_from_google_token(token)
     data.save_user_id(user_id)
 
-    response = {}
+    response = dict()
     with cuwais.database.create_session() as database_session:
         user = data.get_user_from_id(database_session, user_id)
         response["user_id"] = user.id
@@ -210,6 +210,9 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
+    print("=== CREATING TABLES! ===", flush=True)
+    cuwais.database.create_tables()
+    print("=== CREATED TABLES!  ===", flush=True)
     if app.config["DEBUG"]:
         app.run(host="0.0.0.0", port=8080)
     else:

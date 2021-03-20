@@ -48,6 +48,6 @@ def get_user_id_from_google_token(token) -> int:
     google_id = str(id_info['sub'])
     name = str(id_info['name'])
 
-    user = data.make_or_get_google_user(google_id, name)
+    user_id = data.make_or_get_google_user(google_id, name)
 
-    return user
+    return user_id

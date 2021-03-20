@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 
 import cuwais
-from cuwais.database import User, Submission, Result
+from cuwais.database import User, Submission, Result, Match
 from flask import session
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
@@ -35,22 +35,23 @@ def get_user_from_id(database_session: Session, user_id) -> Optional[User]:
 
     return database_session.execute(
         select(User).where(User.id == user_id)
-    ).first()
+    ).scalar_one_or_none()
 
 
 def remove_user():
-    session.pop("cuwais_user", None)
+    session.pop("cuwais_user_id", None)
 
 
 def make_or_get_google_user(google_id, name) -> int:
     with cuwais.database.create_session() as database_session:
         user = database_session.execute(
             select(User).where(User.google_id == google_id)
-        ).first()
+        ).scalar_one_or_none()
 
         if user is None:
             user = User(display_name=name, google_id=google_id)
             database_session.add(user)
+            database_session.commit()
 
         return user.id
 

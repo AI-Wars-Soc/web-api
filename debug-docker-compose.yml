@@ -8,6 +8,7 @@ services:
     volumes:
       - "./server:/home/web_user/server"
       - "./tmp/repositories:/repositories"
+      - "./tmp/database:/database"
     networks:
       - database
       - redis
@@ -16,7 +17,7 @@ services:
       TESTING: "True"
       SERVER_NAME: "lvh.me"
       CLIENT_ID: "389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com"
-      DATABASE_CONNECTION: "sqlite+pysqlite:///:memory:"
+      DATABASE_CONNECTION: "sqlite+pysqlite:////database/database.sqlite"
       INITIAL_SCORE: 1000
       SCORE_TURBULENCE_MILLIS: 5000
       HEALTH_BUFFER: 100
