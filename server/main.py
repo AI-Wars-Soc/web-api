@@ -158,6 +158,8 @@ def login_google():
 def get_leaderboard(user_id):
     scoreboard = data.get_scoreboard()
 
+    print("scoreboard: ", scoreboard, flush=True)
+
     return Response(json.dumps(scoreboard),
                     status=200,
                     mimetype='application/json')

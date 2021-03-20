@@ -97,7 +97,10 @@ def get_all_user_submissions(database_session: Session, user_id: int, private=Fa
         select(Submission).where(Submission.user_id == user_id).order_by(Submission.submission_date)
     ).all()
 
-    return [sub.to_private_dict() if private else sub.to_public_dict() for sub in subs]
+    print("==================================================")
+    print(subs, flush=True)
+
+    return [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in subs]
 
 
 def create_submission(user_id: int, url: str) -> int:
@@ -107,5 +110,6 @@ def create_submission(user_id: int, url: str) -> int:
         now = datetime.now(tz=timezone.utc)
         submission = Submission(user_id=user_id, submission_date=now, url=url, active=True, files_hash=files_hash)
         database_session.add(submission)
+        database_session.commit()
 
         return submission.id
