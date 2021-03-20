@@ -1,16 +1,17 @@
 import base64
 import hashlib
+import json
 import logging
 import os
 from datetime import timedelta
-from typing import Optional
 
-import cuwais.common
+import cuwais
 import redis
-from flask import Flask, render_template, request, abort, Response, session, redirect
+from cuwais.database import User
+from flask import Flask, render_template, request, abort, Response, redirect
 from flask_session import Session
 
-from server import login
+from server import login, data, nav, repo
 
 app = Flask(
     __name__,
@@ -33,70 +34,15 @@ sess = Session(app)
 logging.basicConfig(level=logging.DEBUG if os.getenv('DEBUG') else logging.WARNING)
 
 
-def save_user(user):
-    session["cuwais_user"] = cuwais.common.encode(user)
-
-
-def get_user() -> Optional[cuwais.common.User]:
-    cuwais_user = cuwais.common.decode(session.get("cuwais_user", "null"))
-    return cuwais_user
-
-
-def remove_user():
-    session.pop("cuwais_user", None)
-
-
-def make_nav_item(text, icon=None, active=False, link='#', data_toggle=None):
-    return dict(text=text, icon=icon, active=active, link=link, data_toggle=data_toggle)
-
-
-def make_nav_item_from_name(name, current_dir):
-    is_active = (name == current_dir)
-    link = f'/{name}' if not is_active else '#'
-    return make_nav_item(text=name.capitalize(), link=link, active=is_active)
-
-
-def make_l_nav(user: Optional[cuwais.common.User], current_dir):
-    places = []
-    if user is not None:
-        places += ['leaderboard', 'submissions']
-    places += ['about']
-
-    items = [make_nav_item_from_name(name, current_dir) for name in places]
-    return items
-
-
-def make_r_nav(user: Optional[cuwais.common.User], current_dir):
-    items = []
-    if user is None:
-        items.append(
-            make_nav_item(text='Log In', icon='fa fa-sign-in', link='#loginModal', data_toggle='modal'))
-    else:
-        items.append(
-            make_nav_item(text=user.display_name, link='/me', active=(current_dir == 'me')))
-        items.append(
-            make_nav_item(text='Log Out', icon='fa fa-sign-out', link='/logout'))
-    return items
-
-
-def extract_session_objs(current_dir):
-    user = get_user()
-    return dict(
-        user=user,
-        l_nav=make_l_nav(user, current_dir),
-        r_nav=make_r_nav(user, current_dir)
-    )
-
-
 def ensure_logged_in(f):
     def f_new():
-        user = get_user()
-        if user is None:
+        user_id = data.get_user_id()
+        if user_id is None:
             return render_template(
                 'login-required.html',
-                **extract_session_objs('login-required')
+                **nav.extract_session_objs('login-required')
             )
-        return f()
+        return f(user_id)
 
     # Renaming the function name to appease flask
     f_new.__name__ = f.__name__
@@ -110,10 +56,10 @@ def generate_sri(inp_file):
     print(file, flush=True)
     with open(file, 'rb') as f:
         while True:
-            data = f.read(65536)
-            if not data:
+            vs = f.read(65536)
+            if not vs:
                 break
-            hashed.update(data)
+            hashed.update(vs)
     hashed = hashed.digest()
     hash_base64 = base64.b64encode(hashed).decode('utf-8')
     return 'sha256-{}'.format(hash_base64)
@@ -124,7 +70,7 @@ app.jinja_env.globals['sri'] = generate_sri
 
 @app.route('/')
 def index():
-    user = get_user()
+    user = data.get_user_id()
     if user is not None:
         return redirect('/leaderboard')
     return redirect('/about')
@@ -134,47 +80,47 @@ def index():
 def about():
     return render_template(
         'about.html',
-        **extract_session_objs('about')
+        **nav.extract_session_objs('about')
     )
 
 
 @app.route('/leaderboard')
 @ensure_logged_in
-def leaderboard():
+def leaderboard(user_id):
     return render_template(
         'leaderboard.html',
-        **extract_session_objs('leaderboard')
+        **nav.extract_session_objs('leaderboard')
     )
 
 
 @app.route('/submissions')
 @ensure_logged_in
-def submissions():
-    subs = get_user().get_all_submissions()
-    subs.sort(key=lambda s: s.submission_date)
-    return render_template(
-        'submissions.html',
-        submissions=subs,
-        **extract_session_objs('submissions')
-    )
+def submissions(user_id):
+    with cuwais.database.create_session() as database_session:
+        subs = data.get_all_user_submissions(database_session, user_id, private=True)
+        return render_template(
+            'submissions.html',
+            submissions=subs,
+            **nav.extract_session_objs('submissions', database_session)
+        )
 
 
 @app.route('/me')
 @ensure_logged_in
-def me():
+def me(user_id):
     return render_template(
         'me.html',
-        **extract_session_objs('me')
+        **nav.extract_session_objs('me')
     )
 
 
 @app.route('/logout')
 def logout():
-    remove_user()
+    data.remove_user()
 
     return render_template(
         'logout.html',
-        **extract_session_objs('logout')
+        **nav.extract_session_objs('logout')
     )
 
 
@@ -182,72 +128,76 @@ def logout():
 def please_enable_js():
     return render_template(
         'please_enable_js.html',
-        **extract_session_objs('please_enable_js')
+        **nav.extract_session_objs('please_enable_js')
     )
 
 
 @app.route('/api/login_google', methods=['POST'])
 def login_google():
-    json = request.get_json()
-    if 'idtoken' not in json:
+    json_in = request.get_json()
+    if 'idtoken' not in json_in:
         abort(400)
-    token = json.get('idtoken')
+    token = json_in.get('idtoken')
 
-    user = login.get_user_from_google_token(token)
-    save_user(user)
+    user_id = login.get_user_id_from_google_token(token)
+    data.save_user_id(user_id)
 
-    encoded = cuwais.common.encode(user)
+    response = {}
+    with cuwais.database.create_session() as database_session:
+        user = data.get_user_from_id(database_session, user_id)
+        response["user_id"] = user.id
+        response["user_name"] = user.display_name
 
-    return Response(encoded,
+    return Response(json.dumps(response),
                     status=200,
                     mimetype='application/json')
 
 
 @app.route('/api/get_leaderboard')
-def get_leaderboard():
-    user = get_user()
-    user_id = None if user is None else user.user_id
+@ensure_logged_in
+def get_leaderboard(user_id):
+    scoreboard = data.get_scoreboard()
 
-    # TODO: Cache this
-    partial_scoreboard = cuwais.common.get_scoreboard()
-
-    full_scoreboard = []
-    for submission, score in partial_scoreboard:
-        user = cuwais.common.User.get(submission.user_id)
-        is_user = user_id == user.user_id
-
-        if not is_user:
-            # Remove hidden data
-            submission.url = "[HIDDEN]"
-
-        full_scoreboard.append(dict(submission=submission, user=user, score=score, is_you=is_user))
-
-    encoded = cuwais.common.encode(full_scoreboard)
-
-    return Response(encoded,
+    return Response(json.dumps(scoreboard),
                     status=200,
                     mimetype='application/json')
+
+
+def _make_submission_failure(message):
+        encoded = json.dumps({"status": "fail", "message": message})
+        return Response(encoded,
+                        status=400,
+                        mimetype='application/json')
 
 
 @app.route('/api/add_submission', methods=['POST'])
 @ensure_logged_in
-def add_submission():
-    user = get_user()
-    json = request.json
-    url = json["url"]
+def add_submission(user_id):
+    json_in = request.json
+    url = json_in["url"]
     try:
-        submission = cuwais.common.Submission.create(user.user_id, url)
-    except cuwais.common.InvalidRequestError as e:
-        print(e.error, flush=True)
-        encoded = cuwais.common.encode(e.error)
-        return Response(encoded,
-                        status=200,
-                        mimetype='application/json')
+        submission_id = data.create_submission(user_id, url)
+    except repo.InvalidGitURL:
+        return _make_submission_failure("Invalid GIT URL")
+    except repo.AlreadyExistsException:
+        return _make_submission_failure("GIT repo already submitted")
+    except repo.RepoTooBigException:
+        return _make_submission_failure("GIT repo is too large!")
 
-    encoded = cuwais.common.encode(submission)
+    encoded = json.dumps({"status": "success", "submission_id": submission_id})
     return Response(encoded,
                     status=200,
                     mimetype='application/json')
+
+
+@app.route('/api/set_submission_active', methods=['POST'])
+@ensure_logged_in
+def set_submission_active(user_id):
+    json_in = request.json
+    submission_id = json_in["submission_id"]
+    enabled = json_in["enabled"]
+
+    print(user_id, submission_id, enabled, flush=True)
 
 
 @app.errorhandler(404)
@@ -255,7 +205,7 @@ def page_not_found(e):
     # note that we set the 404 status explicitly
     return render_template(
         '404.html',
-        **extract_session_objs('404')
+        **nav.extract_session_objs('404')
     ), 404
 
 

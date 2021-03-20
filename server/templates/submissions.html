@@ -10,11 +10,11 @@
     </div>
     <!-- Submissions -->
     <script>
-        function setSubmissionEnabledSwitch(v) {
+        function setSubmissionEnabledSwitch(v, id) {
             if (v.checked) {
-                Style.setDark();
+                Submissions.set_enabled(id, true);
             } else {
-                Style.setLight();
+                Submissions.set_enabled(id, false);
             }
         }
     </script>
@@ -31,7 +31,7 @@
                     <div class="custom-control custom-switch">
                         <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
                                checked="{{- active -}}"
-                               onchange="setSubmissionEnabledSwitch(this)">
+                               onchange="setSubmissionEnabledSwitch(this, {{- id -}})">
                         <label class="custom-control-label" for="enabledSwitch{{- id -}}">Enabled</label>
                     </div>
                 </div>
