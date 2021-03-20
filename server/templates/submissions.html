@@ -18,9 +18,9 @@
             }
         }
     </script>
-    {% macro submission(number, id, date, active) -%}
+    {% macro submission(number, id, date, active, selected) -%}
         <div class="px-lg-5 d-flex justify-content-center">
-            <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 border-bottom submission-entry">
+            <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 submission-entry {{ 'submission-entry-active' if active }} {{ 'submission-entry-selected' if selected }}">
                 <div class="p-1 submission-index">
                     {{ number }}
                 </div>
@@ -36,9 +36,9 @@
                 <div class="p-1 submission-active">
                     <div class="custom-control custom-switch">
                         <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
-                               checked="{{- active -}}"
+                               {% if active %} checked {% endif %}
                                onchange="setSubmissionEnabledSwitch(this, {{- id -}})">
-                        <label class="custom-control-label" for="enabledSwitch{{- id -}}">Enabled</label>
+                        <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
                     </div>
                 </div>
             </div>
@@ -46,7 +46,7 @@
     {%- endmacro %}
     {% macro all_submissions(items) -%}
         {% for item in items %}
-            {{ submission(loop.index, item.submission_id, item.submission_date, item.active) }}
+            {{ submission((items|length - loop.index) + 1, item.submission_id, item.submission_date, item.active, item.submission_id == current_sub_id) }}
         {% endfor %}
     {%- endmacro %}
     <div class="d-flex flex-row">

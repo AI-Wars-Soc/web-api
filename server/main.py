@@ -98,9 +98,11 @@ def leaderboard(user_id):
 def submissions(user_id):
     with cuwais.database.create_session() as database_session:
         subs = data.get_all_user_submissions(database_session, user_id, private=True)
+        current_sub = data.get_current_submission(database_session, user_id)
         return render_template(
             'submissions.html',
             submissions=subs,
+            current_sub_id=current_sub,
             **nav.extract_session_objs('submissions', database_session)
         )
 

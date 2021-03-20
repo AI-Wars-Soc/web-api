@@ -67,6 +67,20 @@ body {
   width: 100px;
   text-align: end;
 }
+.submission-entry {
+  margin: 6px;
+  opacity: 0.5;
+}
+.submission-entry-active {
+  opacity: 1.0;
+}
+.submission-entry-selected {
+  border-radius: 20px;
+  border-width: 6px;
+  border-style: double;
+  border-color: var(--bs-secondary);
+  margin: 0;
+}
 .submission-submit-button {
   max-width: 100px;
   width: 100% !important;

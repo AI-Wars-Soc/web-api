@@ -93,3 +93,18 @@ def create_submission(user_id: int, url: str) -> int:
         database_session.commit()
 
         return submission.id
+
+
+def get_current_submission(database_session, user_id):
+    subq = database_session.query(
+        Submission.id,
+        func.max(Submission.submission_date).label('maxdate')
+    ).group_by(Submission.user_id) \
+        .filter(Submission.user_id == user_id) \
+        .filter(Submission.active == True) \
+        .first()
+
+    if subq is None:
+        return None
+
+    return subq[0]
