@@ -221,9 +221,7 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
-    print("=== CREATING TABLES! ===", flush=True)
     cuwais.database.create_tables()
-    print("=== CREATED TABLES!  ===", flush=True)
     if app.config["DEBUG"]:
         app.run(host="0.0.0.0", port=8080)
     else:
