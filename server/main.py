@@ -22,7 +22,6 @@ with open("/run/secrets/secret_key") as secrets_file:
     app.secret_key = secret
     app.config["SECRET_KEY"] = secret
 app.config["DEBUG"] = os.getenv('DEBUG') == 'True'
-app.config["TESTING"] = os.getenv('TESTING') == 'True'
 
 app.config["SESSION_COOKIE_NAME"] = "cuwais_session"
 app.config["SERVER_NAME"] = str(os.getenv('SERVER_NAME'))
@@ -43,6 +42,20 @@ def ensure_logged_in(f):
                 **nav.extract_session_objs('login-required')
             )
         return f(user_id)
+
+    # Renaming the function name to appease flask
+    f_new.__name__ = f.__name__
+    return f_new
+
+
+def ensure_admin(f):
+    @ensure_logged_in
+    def f_new(user_id):
+        with cuwais.database.create_session() as database_session:
+            user = data.get_user_from_id(database_session, user_id)
+        if user is None or not user.is_admin:
+            return page_not_found()
+        return f(user)
 
     # Renaming the function name to appease flask
     f_new.__name__ = f.__name__
@@ -116,6 +129,28 @@ def me(user_id):
     )
 
 
+@app.route('/admin')
+@ensure_admin
+def admin(user):
+    return render_template(
+        'admin.html',
+        **nav.extract_session_objs('admin')
+    )
+
+
+@app.route('/bots')
+@ensure_admin
+def bots(user):
+    with cuwais.database.create_session() as database_session:
+        bot_subs = data.get_all_bot_submissions(database_session)
+        bot_subs = [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
+        return render_template(
+            'bots.html',
+            bots=bot_subs,
+            **nav.extract_session_objs('bots', database_session)
+        )
+
+
 @app.route('/logout')
 def logout():
     data.remove_user()
@@ -158,7 +193,7 @@ def login_google():
 @app.route('/api/get_leaderboard')
 @ensure_logged_in
 def get_leaderboard(user_id):
-    scoreboard = data.get_scoreboard()
+    scoreboard = data.get_scoreboard(user_id)
 
     return Response(json.dumps(scoreboard, default=str),
                     status=200,
@@ -192,6 +227,41 @@ def add_submission(user_id):
                     mimetype='application/json')
 
 
+@app.route('/api/add_bot', methods=['POST'])
+@ensure_admin
+def add_bot(user):
+    json_in = request.json
+    url = json_in["url"]
+    name = json_in["name"]
+    try:
+        bot_id = data.create_bot(name)
+        submission_id = data.create_submission(bot_id, url)
+    except repo.InvalidGitURL:
+        return _make_api_failure("Invalid GIT URL")
+    except repo.AlreadyExistsException:
+        return _make_api_failure("GIT repo already submitted")
+    except repo.RepoTooBigException:
+        return _make_api_failure("GIT repo is too large!")
+
+    encoded = json.dumps({"status": "success", "submission_id": submission_id})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/api/remove_bot', methods=['POST'])
+@ensure_admin
+def remove_bot(user):
+    json_in = request.json
+    bot_id = json_in["id"]
+    data.delete_bot(bot_id)
+
+    encoded = json.dumps({"status": "success"})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
 @app.route('/api/set_submission_active', methods=['POST'])
 @ensure_logged_in
 def set_submission_active(user_id):
@@ -212,7 +282,11 @@ def set_submission_active(user_id):
 
 
 @app.errorhandler(404)
-def page_not_found(e):
+def page_404(e):
+    return page_not_found()
+
+
+def page_not_found():
     # note that we set the 404 status explicitly
     return render_template(
         '404.html',

@@ -11,6 +11,8 @@ import sh as sh
 GIT_BASE_DIR = '/repositories/'
 GIT_HASH_RE = re.compile(r"^(?P<hash>[0-9a-f]{40})\s*HEAD$", re.MULTILINE)
 
+MAXIMUM_REPO_SIZE = int(os.getenv("MAX_REPO_SIZE_BYTES"))
+
 
 class InvalidGitURL(RuntimeError):
     def __init__(self, msg, url):
@@ -57,7 +59,7 @@ def download_repository(user_id: int, url: str) -> str:
         sh.git.clone(url, clone_dir_str, "--depth=1")
 
         size = get_dir_size_bytes(clone_dir_str)
-        if size > int(os.getenv("MAX_REPO_SIZE_BYTES")):
+        if size > MAXIMUM_REPO_SIZE:
             raise RepoTooBigException(url)
 
         sh.git.archive("--output=" + archive_dir_str, "--format=tar", "HEAD", _cwd=clone_dir_str)

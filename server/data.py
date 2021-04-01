@@ -54,11 +54,11 @@ def make_or_get_google_user(google_id, name) -> int:
         return user.id
 
 
-def get_scoreboard() -> List[Dict[str, Any]]:
+def get_scoreboard(user_id) -> List[Dict[str, Any]]:
     with cuwais.database.create_session() as database_session:
         user_scores = database_session.query(
             User,
-            func.sum(Result.milli_points_delta).label("total_score")
+            func.sum(Result.points_delta).label("total_score")
         ).filter(Result.submission_id == Submission.id) \
             .filter(User.id == Submission.user_id) \
             .group_by(User.id) \
@@ -67,7 +67,8 @@ def get_scoreboard() -> List[Dict[str, Any]]:
 
     init = int(os.getenv("INITIAL_SCORE"))
     scores = [{"user": user.to_public_dict(),
-               "score": init + (score / 1000)}
+               "score": init + score,
+               "is_you": user_id == user.id}
               for [user, score] in user_scores]
 
     return scores
@@ -133,3 +134,24 @@ def set_submission_enabled(database_session, submission_id: int, enabled: bool):
     res.active = enabled
 
     database_session.commit()
+
+
+def get_all_bot_submissions(database_session) -> List[Tuple[User, Submission]]:
+    return database_session.query(User, Submission).filter(User.is_bot == True).join(User.submissions).all()
+
+
+def create_bot(name):
+    with cuwais.database.create_session() as database_session:
+        bot = User(display_name=name, is_bot=True)
+        database_session.add(bot)
+        database_session.commit()
+
+        return bot.id
+
+
+def delete_bot(bot_id):
+    with cuwais.database.create_session() as database_session:
+        database_session.query(Submission).filter(Submission.user_id == bot_id).delete()
+        bot = database_session.query(User).get(bot_id)
+        database_session.delete(bot)
+        database_session.commit()

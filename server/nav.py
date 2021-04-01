@@ -32,8 +32,11 @@ def make_r_nav(user: Optional[User], current_dir):
         items.append(
             make_nav_item(text='Log In', icon='fa fa-sign-in', link='#loginModal', data_toggle='modal'))
     else:
+        if user.is_admin:
+            items.append(make_nav_item_from_name("admin", current_dir))
         items.append(
-            make_nav_item(text=user.display_name, link='/me', active=(current_dir == 'me')))
+            make_nav_item(text=user.display_name, link='/me' if current_dir != 'me' else '#',
+                          active=(current_dir == 'me')))
         items.append(
             make_nav_item(text='Log Out', icon='fa fa-sign-out', link='/logout'))
     return items
