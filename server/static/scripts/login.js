@@ -19,7 +19,7 @@ class Login {
             const error_message = $("#login-error-msg");
             error_message.hide();
             console.log('Signed in as: ' + xhr.responseText);
-            location.reload();
+            window.location.replace("/leaderboard");
         };
         xhr.onerror = function () {
             Login.onLoginFail(xhr.responseText);

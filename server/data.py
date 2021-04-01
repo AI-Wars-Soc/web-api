@@ -93,19 +93,26 @@ def create_submission(user_id: int, url: str) -> int:
         return submission.id
 
 
-def get_current_submission(database_session, user_id):
-    subq = database_session.query(
-        Submission.id,
+def get_current_submission(database_session, user_id) -> Optional[Submission]:
+    sub_date = database_session.query(
         func.max(Submission.submission_date).label('maxdate')
     ).group_by(Submission.user_id) \
         .filter(Submission.user_id == user_id) \
         .filter(Submission.active == True) \
         .first()
 
-    if subq is None:
+    if sub_date is None:
         return None
 
-    return subq[0]
+    sub_date = sub_date[0]
+
+    submission = database_session.query(
+        Submission
+    ).filter(Submission.user_id == user_id) \
+        .filter(Submission.submission_date == sub_date) \
+        .first()
+
+    return submission
 
 
 def submission_is_owned_by_user(database_session, submission_id: int, user_id: int):

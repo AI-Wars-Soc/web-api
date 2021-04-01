@@ -102,7 +102,7 @@ def submissions(user_id):
         return render_template(
             'submissions.html',
             submissions=subs,
-            current_sub_id=current_sub,
+            current_sub_id=current_sub.id,
             **nav.extract_session_objs('submissions', database_session)
         )
 
