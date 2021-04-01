@@ -5,7 +5,7 @@ from typing import Optional, List, Tuple, Dict, Union, Any
 import cuwais
 from cuwais.database import User, Submission, Result, Match
 from flask import session
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, desc
 from sqlalchemy.orm import Session
 
 from server import repo
@@ -62,7 +62,7 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
         ).filter(Result.submission_id == Submission.id) \
             .filter(User.id == Submission.user_id) \
             .group_by(User.id) \
-            .order_by("total_score") \
+            .order_by(desc("total_score")) \
             .all()
 
     init = int(os.getenv("INITIAL_SCORE"))
