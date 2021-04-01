@@ -76,7 +76,5 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='scripts/submissions.js') }}"
-            integrity="{{ sri(url_for('static', filename='scripts/submissions.js')) }}"
-            crossorigin="anonymous"></script>
+    {{ import('scripts/submissions.js') }}
 {% endblock %}

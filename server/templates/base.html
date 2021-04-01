@@ -1,3 +1,19 @@
+{% macro import(filename) %}
+    {% set url = url_for('static', filename=filename) %}
+    {% set uri =sri(url) %}
+<script src="{{ url + "?" + uri }}"
+        integrity="{{ uri }}"
+        crossorigin="anonymous"></script>
+{% endmacro %}
+{% macro css(filename) %}
+    {% set url = url_for('static', filename=filename) %}
+    {% set uri =sri(url) %}
+<link href="{{ url + "?" + uri }}"
+      integrity="{{ uri }}"
+      rel="stylesheet"
+      crossorigin="anonymous">
+{% endmacro %}
+
 <!-- templates/base.html -->
 <!DOCTYPE html>
 <html lang="en">
@@ -19,7 +35,7 @@
     <link rel="stylesheet" crossorigin="anonymous"
           id="bootswatch-active">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {{ css('css/style.css') }}
 
     <!-- Font Awesome js -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
@@ -43,18 +59,14 @@
             crossorigin="anonymous"></script>
 
     <!-- CUWAIS Scripts -->
-    <script src="{{ url_for('static', filename='scripts/style.js') }}"
-            integrity="{{ sri(url_for('static', filename='scripts/style.js')) }}"
-            crossorigin="anonymous"></script>
+    {{ import('scripts/style.js') }}
 
     <!-- Font Awesome js -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
     {% if user is none %}
-    <script src="{{ url_for('static', filename='scripts/login.js') }}"
-            integrity="{{ sri(url_for('static', filename='scripts/login.js')) }}"
-            crossorigin="anonymous"></script>
+    {{ import('scripts/login.js') }}
 
     <!-- Google login -->
     <script src="https://apis.google.com/js/platform.js?onload=Login.googleInit" async defer></script>

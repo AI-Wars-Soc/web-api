@@ -10,9 +10,7 @@
     </div>
 {% endblock %}
 {% block modal %}
-    <script src="{{ url_for('static', filename='scripts/logout.js') }}"
-            integrity="{{ sri(url_for('static', filename='scripts/logout.js')) }}"
-            crossorigin="anonymous"></script>
+    {{ import('scripts/logout.js') }}
 
     <script>
         function onGoogleSignIn(e) {

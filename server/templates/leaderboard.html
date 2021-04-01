@@ -37,7 +37,5 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='scripts/leaderboard.js') }}"
-            integrity="{{ sri(url_for('static', filename='scripts/leaderboard.js')) }}"
-            crossorigin="anonymous"></script>
+    {{ import('scripts/leaderboard.js') }}
 {% endblock %}
