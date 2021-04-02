@@ -14,26 +14,52 @@
             new results. There is no need to refresh this page
         </p>
     </div>
-    <div class="d-flex justify-content-center">
-        <div class="d-flex flex-column py-3 py-lg-5 flex-grow-1" id="leaderboard">
-            <div class="p-1 px-md-5">
-                <div class="px-lg-5 d-flex justify-content-center">
-                    <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 border-bottom fw-bold leaderboard-submission">
-                        <div class="leaderboard-position">
-                            Position
-                        </div>
-                        <div class="leaderboard-name">
-                            User
-                        </div>
-                        <div class="leaderboard-score">
-                            Score
-                        </div>
-                    </div>
+
+    {% macro leaderboard_entry(position, name, wins, losses, draws, wld, score, is_header, is_you, is_bot) %}
+    <div class="p-1 px-md-3">
+        <div class="px-lg-5 d-flex justify-content-center">
+            <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission
+            {% if is_header %} border-bottom fw-bold {% elif is_you %} leaderboard-user-submission
+            {% elif is_bot %} leaderboard-bot-submission {% else %} leaderboard-other-submission {% endif %}">
+                <div class="leaderboard-position">
+                    {{ position }}
+                </div>
+                <div class="leaderboard-name">
+                    {{ name }}
+                </div>
+                <div class="leaderboard-wins leaderboard-kda d-none d-md-block">
+                    {{ wins }}
+                </div>
+                <div class="leaderboard-losses leaderboard-kda d-none d-md-block">
+                    {{ losses }}
+                </div>
+                <div class="leaderboard-draws leaderboard-kda d-none d-md-block">
+                    {{ draws }}
+                </div>
+                <div class="leaderboard-kda d-none d-sm-block d-md-none">
+                    {{ wld }}
+                </div>
+                <div class="leaderboard-spacer d-none d-lg-block">
+                </div>
+                <div class="leaderboard-score">
+                    {{ score }}
                 </div>
             </div>
-            <noscript>
-                Please enable Javascript to view the leaderboard :)
-            </noscript>
+        </div>
+    </div>
+    {% endmacro %}
+    {% macro all_leaderboard(items) %}
+        {{ leaderboard_entry("Position", "Name", "Wins", "Losses", "Draws", "W/L/D", "Score", True, False, False) }}
+        {% for item in items %}
+            {{ leaderboard_entry((items|length - loop.index) + 1, item.user.display_name,
+            item.outcomes.wins, item.outcomes.losses, item.outcomes.draws,
+            "%.0f/%.0f/%.0f" % (item.outcomes.wins, item.outcomes.losses, item.outcomes.draws),
+            "%.0f" % item.score, False, item.is_you, item.user.is_bot) }}
+        {% endfor %}
+    {% endmacro %}
+    <div class="d-flex justify-content-center">
+        <div class="d-flex flex-column py-3 py-lg-5 flex-grow-1" id="leaderboard">
+            {{ all_leaderboard(leaderboard) }}
         </div>
     </div>
 

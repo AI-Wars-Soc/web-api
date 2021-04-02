@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Tuple, Dict, Union, Any
 
 import cuwais
+from cuwais.common import Outcome
 from cuwais.database import User, Submission, Result, Match
 from flask import session
 from sqlalchemy import select, func, and_, desc
@@ -65,10 +66,29 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
             .order_by(desc("total_score")) \
             .all()
 
+        counts = {}
+        for outcome in Outcome:
+            user_outcome_counts = database_session.query(
+                User.id,
+                func.count(Result.id)
+            ).join(User.submissions)\
+                .join(Submission.results)\
+                .filter(Result.outcome == int(outcome.value))\
+                .group_by(User.id)\
+                .all()
+
+            counts[outcome] = user_outcome_counts
+
+    # Convert outcomes to wins/losses/draws
+    counts_by_outcome = {o: {user_id: count for user_id, count in counts[o]} for o in Outcome}
+
     init = int(os.getenv("INITIAL_SCORE"))
     scores = [{"user": user.to_public_dict(),
                "score": init + score,
-               "is_you": user_id == user.id}
+               "is_you": user_id == user.id,
+               "outcomes": {"wins": counts_by_outcome[Outcome.Win][user.id],
+                            "losses": counts_by_outcome[Outcome.Loss][user.id],
+                            "draws": counts_by_outcome[Outcome.Draw][user.id]}}
               for [user, score] in user_scores]
 
     return scores
@@ -151,6 +171,9 @@ def create_bot(name):
 
 def delete_bot(bot_id):
     with cuwais.database.create_session() as database_session:
+        database_session.query(Match).join(Match.results).join(Result.submission)\
+                                                               .filter(Submission.user_id == bot_id).delete()
+        database_session.query(Result).join(Result.submission).filter(Submission.user_id == bot_id).delete()
         database_session.query(Submission).filter(Submission.user_id == bot_id).delete()
         bot = database_session.query(User).get(bot_id)
         database_session.delete(bot)

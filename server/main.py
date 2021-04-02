@@ -100,8 +100,10 @@ def about():
 @app.route('/leaderboard')
 @ensure_logged_in
 def leaderboard(user_id):
+    scoreboard = data.get_scoreboard(user_id)
     return render_template(
         'leaderboard.html',
+        leaderboard=scoreboard,
         **nav.extract_session_objs('leaderboard')
     )
 
@@ -115,7 +117,7 @@ def submissions(user_id):
         return render_template(
             'submissions.html',
             submissions=subs,
-            current_sub_id=current_sub.id,
+            current_sub_id=current_sub.id if current_sub is not None else None,
             **nav.extract_session_objs('submissions', database_session)
         )
 
@@ -186,16 +188,6 @@ def login_google():
         response["user_name"] = user.display_name
 
     return Response(json.dumps(response),
-                    status=200,
-                    mimetype='application/json')
-
-
-@app.route('/api/get_leaderboard')
-@ensure_logged_in
-def get_leaderboard(user_id):
-    scoreboard = data.get_scoreboard(user_id)
-
-    return Response(json.dumps(scoreboard, default=str),
                     status=200,
                     mimetype='application/json')
 

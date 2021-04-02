@@ -32,8 +32,21 @@ body {
 .leaderboard-name {
   flex-grow: 1;
 }
+.leaderboard-kda {
+  width: 70px;
+  text-align: center;
+}
+.leaderboard-wins {
+}
+.leaderboard-losses {
+}
+.leaderboard-draws {
+}
+.leaderboard-spacer {
+  width: 30px;
+}
 .leaderboard-score {
-  width: 100px;
+  width: 70px;
   text-align: end;
 }
 .leaderboard-submission {
@@ -46,11 +59,14 @@ body {
 .leaderboard-user-submission {
   border-width: 6px;
   border-style: double;
-  border-color: var(--bs-cyan);
+  border-color: #2D7DD2;
   margin: 0;
 }
 .leaderboard-bot-submission {
-  border-color: var(--bs-red);
+  border-width: 3px;
+  border-style: solid;
+  border-color: #90001C;
+  margin: 3px !important;
 }
 .leaderboard-other-submission {
   border-color: var(--bs-secondary);

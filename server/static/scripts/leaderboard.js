@@ -23,6 +23,9 @@ class Leaderboard {
                     .append($("<div />", {"class": "leaderboard-entry-child-container max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission"})
                         .append($("<div />", {"class": "leaderboard-position fw-bold"}))
                         .append($("<div />", {"class": "leaderboard-name"}))
+                        .append($("<div />", {"class": "leaderboard-wins leaderboard-kda"}))
+                        .append($("<div />", {"class": "leaderboard-losses leaderboard-kda"}))
+                        .append($("<div />", {"class": "leaderboard-draws leaderboard-kda"}))
                         .append($("<div />", {"class": "leaderboard-score"}))
                     )
                 )
@@ -50,6 +53,9 @@ class Leaderboard {
 
         entry.find(".leaderboard-position").text(position);
         entry.find(".leaderboard-name").text(data.user.display_name);
+        entry.find(".leaderboard-wins").text(data.outcomes.wins);
+        entry.find(".leaderboard-losses").text(data.outcomes.losses);
+        entry.find(".leaderboard-draws").text(data.outcomes.draws);
         entry.find(".leaderboard-score").text(Math.round((data.score + Number.EPSILON) * 10) / 10);
     }
 
@@ -112,6 +118,6 @@ class Leaderboard {
     }
 }
 
-const leaderboard = new Leaderboard();
-Leaderboard.get_and_update_leaderboard(leaderboard);
-window.setInterval(Leaderboard.get_and_update_leaderboard, 5 * 60 * 1000, leaderboard);
+//const leaderboard = new Leaderboard();
+//Leaderboard.get_and_update_leaderboard(leaderboard);
+//window.setInterval(Leaderboard.get_and_update_leaderboard, 5 * 60 * 1000, leaderboard);
