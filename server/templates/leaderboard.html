@@ -16,7 +16,7 @@
     </div>
 
     {% macro leaderboard_entry(position, name, wins, losses, draws, wld, score, is_header, is_you, is_bot) %}
-    <div class="p-1 px-md-3">
+    <div class="p-1 px-md-3" id="leaderboard-entry-{{- position }}">
         <div class="px-lg-5 d-flex justify-content-center">
             <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission
             {% if is_header %} border-bottom fw-bold {% elif is_you %} leaderboard-user-submission
@@ -51,7 +51,7 @@
     {% macro all_leaderboard(items) %}
         {{ leaderboard_entry("Position", "Name", "Wins", "Losses", "Draws", "W/L/D", "Score", True, False, False) }}
         {% for item in items %}
-            {{ leaderboard_entry((items|length - loop.index) + 1, item.user.display_name,
+            {{ leaderboard_entry(loop.index, item.user.display_name,
             item.outcomes.wins, item.outcomes.losses, item.outcomes.draws,
             "%.0f/%.0f/%.0f" % (item.outcomes.wins, item.outcomes.losses, item.outcomes.draws),
             "%.0f" % item.score, False, item.is_you, item.user.is_bot) }}
