@@ -212,6 +212,11 @@ def add_submission(user_id):
         return _make_api_failure("GIT repo already submitted")
     except repo.RepoTooBigException:
         return _make_api_failure("GIT repo is too large!")
+    except repo.AlreadyCloningException:
+        encoded = json.dumps({"status": "resent"})
+        return Response(encoded,
+                        status=200,
+                        mimetype='application/json')
 
     encoded = json.dumps({"status": "success", "submission_id": submission_id})
     return Response(encoded,

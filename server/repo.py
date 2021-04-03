@@ -25,6 +25,10 @@ class AlreadyExistsException(RuntimeError):
     pass
 
 
+class AlreadyCloningException(RuntimeError):
+    pass
+
+
 class RepoTooBigException(RuntimeError):
     pass
 
@@ -52,6 +56,9 @@ def download_repository(user_id: int, url: str) -> str:
     archive_dir = Path(GIT_BASE_DIR, files_hash + ".tar")
     archive_dir_str = str(archive_dir.absolute())
 
+    if clone_dir.exists():
+        raise AlreadyCloningException(url)
+
     if archive_dir.exists():
         raise AlreadyExistsException(url)
 
@@ -60,6 +67,7 @@ def download_repository(user_id: int, url: str) -> str:
 
         size = get_dir_size_bytes(clone_dir_str)
         if size > MAXIMUM_REPO_SIZE:
+            # TODO: Cache too big entries in redis
             raise RepoTooBigException(url)
 
         sh.git.archive("--output=" + archive_dir_str, "--format=tar", "HEAD", _cwd=clone_dir_str)

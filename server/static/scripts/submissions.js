@@ -1,6 +1,7 @@
 const submission_error_box = $("#submission-error-msg");
 const repo_box = $("#repo");
 const bot_name_box = $("#bot-name");
+const submit_spinner = $("#submit-spinner")
 
 class Submissions {
     static setSubmissionEnabledSwitch(v, id) {
@@ -41,6 +42,9 @@ class Submissions {
     static onSubmit(e) {
         e.preventDefault();
         const url = repo_box.val();
+        repo_box.val("");
+
+        submit_spinner.show();
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_submission');
@@ -50,12 +54,17 @@ class Submissions {
                 Submissions.onSubmitFail(xhr.responseText);
                 return;
             }
+            const response = JSON.parse(xhr.responseText)
+            if (response.status === "resent") { // Ignore resent requests
+                return;
+            }
+            submit_spinner.hide();
             submission_error_box.hide();
-            repo_box.val("");
             window.location.reload();
         };
         xhr.onerror = function () {
             Submissions.onSubmitFail(xhr.responseText);
+            submit_spinner.hide();
         };
         xhr.send(JSON.stringify({
             url: url
