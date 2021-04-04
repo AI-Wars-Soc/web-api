@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Union, Any
 
 import cuwais
@@ -67,6 +67,7 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
             .order_by(desc("total_score")) \
             .all()
 
+        since = datetime.now() - timedelta(hours=24)
         counts = {}
         for outcome in Outcome:
             user_outcome_counts = database_session.query(
@@ -74,7 +75,9 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
                 func.count(Result.id)
             ).join(User.submissions)\
                 .join(Submission.results)\
+                .join(Result.match)\
                 .filter(Result.outcome == int(outcome.value))\
+                .filter(Match.match_date > since)\
                 .group_by(User.id)\
                 .all()
 
@@ -87,9 +90,9 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
     scores = [{"user": user.to_public_dict(),
                "score": init + score,
                "is_you": user_id == user.id,
-               "outcomes": {"wins": counts_by_outcome[Outcome.Win][user.id],
-                            "losses": counts_by_outcome[Outcome.Loss][user.id],
-                            "draws": counts_by_outcome[Outcome.Draw][user.id]}}
+               "outcomes": {"wins": counts_by_outcome[Outcome.Win].get(user.id, 0),
+                            "losses": counts_by_outcome[Outcome.Loss].get(user.id, 0),
+                            "draws": counts_by_outcome[Outcome.Draw].get(user.id, 0)}}
               for [user, score] in user_scores]
 
     return scores

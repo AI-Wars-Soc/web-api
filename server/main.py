@@ -81,6 +81,18 @@ def generate_sri(inp_file):
 app.jinja_env.globals['sri'] = generate_sri
 
 
+def human_format(num):
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
+
+
+app.jinja_env.globals['human_format'] = human_format
+
+
 @app.route('/')
 def index():
     user = data.get_user_id()

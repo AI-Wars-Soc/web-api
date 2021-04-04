@@ -64,7 +64,6 @@ class Submissions {
         };
         xhr.onerror = function () {
             Submissions.onSubmitFail(xhr.responseText);
-            submit_spinner.hide();
         };
         xhr.send(JSON.stringify({
             url: url
@@ -103,6 +102,7 @@ class Submissions {
         submission_error_box.text(response.message);
         repo_box.effect("shake");
         submission_error_box.show();
+        submit_spinner.hide();
     }
 
     static deleteBot(id) {

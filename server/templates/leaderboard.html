@@ -52,8 +52,8 @@
         {{ leaderboard_entry("Position", "Name", "Wins", "Losses", "Draws", "W/L/D", "Score", True, False, False) }}
         {% for item in items %}
             {{ leaderboard_entry(loop.index, item.user.display_name,
-            item.outcomes.wins, item.outcomes.losses, item.outcomes.draws,
-            "%.0f/%.0f/%.0f" % (item.outcomes.wins, item.outcomes.losses, item.outcomes.draws),
+            human_format(item.outcomes.wins), human_format(item.outcomes.losses), human_format(item.outcomes.draws),
+            "%s/%s/%s" % (human_format(item.outcomes.wins), human_format(item.outcomes.losses), human_format(item.outcomes.draws)),
             "%.0f" % item.score, False, item.is_you, item.user.is_bot) }}
         {% endfor %}
     {% endmacro %}
