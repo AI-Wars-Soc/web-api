@@ -71,6 +71,12 @@ body {
 .leaderboard-other-submission {
   border-color: var(--bs-secondary);
 }
+#overTimeChartContainer {
+}
+#overTimeChart {
+  max-width: 800px;
+  max-height: 400px;
+}
 
 .submission-index {
   width: 50px;

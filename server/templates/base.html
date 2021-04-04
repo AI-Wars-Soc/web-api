@@ -58,6 +58,11 @@
             integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
             crossorigin="anonymous"></script>
 
+    <!-- chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.0.1/dist/chart.min.js"
+            integrity="sha256-46Gpp0CTbty4I5zSmmVwZ+AGsNXfYGKYp6w6AEr2MBc="
+            crossorigin="anonymous"></script>
+
     <!-- CUWAIS Scripts -->
     {{ import('scripts/style.js') }}
 
@@ -181,8 +186,8 @@
 
 <div id="react-root"></div>
 
-<div class="content mx-lg-5 px-xl-5">
-    <div class="d-flex flex-column mx-md-5 p-2 p-sm-5">
+<div class="content mx-lg-2 px-xl-5">
+    <div class="d-flex flex-column mx-md-3 p-2 p-sm-5">
         {% block content %}{% endblock %}
     </div>
 </div>

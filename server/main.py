@@ -278,6 +278,17 @@ def set_submission_active(user_id):
                     mimetype='application/json')
 
 
+@app.route('/api/get_leaderboard_over_time', methods=['POST'])
+@ensure_logged_in
+def get_leaderboard_over_time(user_id):
+    graph = data.get_leaderboard_graph(user_id)
+
+    encoded = json.dumps({"status": "success", "data": graph})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
 @app.errorhandler(404)
 def page_404(e):
     return page_not_found()

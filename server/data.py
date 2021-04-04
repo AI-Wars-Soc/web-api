@@ -56,6 +56,7 @@ def make_or_get_google_user(google_id, name) -> int:
 
 
 def get_scoreboard(user_id) -> List[Dict[str, Any]]:
+    # TODO: cache these queries and only re-run them every 5 mins or so
     with cuwais.database.create_session() as database_session:
         user_scores = database_session.query(
             User,
@@ -92,6 +93,31 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
               for [user, score] in user_scores]
 
     return scores
+
+
+def get_leaderboard_graph(user_id):
+    with cuwais.database.create_session() as database_session:
+        delta_score_buckets = database_session.query(
+            User,
+            func.date_trunc('hour', Match.match_date),
+            func.sum(Result.points_delta).label("delta_score")
+        ).filter(Result.submission_id == Submission.id,
+                 User.id == Submission.user_id) \
+            .join(Result.match) \
+            .group_by(func.date_trunc('hour', Match.match_date),
+                      User.id)\
+            .all()
+
+    users = {}
+    deltas = []
+    init = int(os.getenv("INITIAL_SCORE"))
+    for user, time, delta in delta_score_buckets:
+        deltas.append({"user_id": user.id, "time": time.timestamp(), "delta": delta})
+        users[user.id] = user.to_public_dict()
+        users[user.id]["is_you"] = (user_id == user.id)
+        users[user.id]["is_bot"] = user.is_bot
+
+    return {"users": users, "deltas": deltas, "initial_score": init}
 
 
 def get_all_user_submissions(database_session: Session, user_id: int, private=False) -> List[dict]:
