@@ -58,7 +58,6 @@ class Submissions {
             if (response.status === "resent") { // Ignore resent requests
                 return;
             }
-            submit_spinner.hide();
             submission_error_box.hide();
             window.location.reload();
         };

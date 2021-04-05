@@ -10,37 +10,35 @@
     </div>
     <!-- Submissions -->
     {% macro submission(number, id, date, active, selected) -%}
-        <div class="px-lg-5 d-flex justify-content-center">
-            <div class="d-flex w-100 flex-row p-1 p-md-2">
-                <div class="card max-width-center submission-entry {{ 'submission-entry-active' if active }} {{ 'submission-entry-selected' if selected }}">
-                    <div class="card-header submission-rounded" id="submission-heading-{{- number -}}" data-toggle="collapse"
-                         data-target="#submission-collapse-{{- number -}}" aria-expanded="false" aria-controls="submission-collapse-{{- number -}}">
-                        <h5 class="mb-0 panel-title">
-                            Submission {{ number }}
-                            {% if selected %}
-                                    (Selected)
-                            {% endif %}
-                        </h5>
-                    </div>
+        <div class="d-flex justify-content-center w-100 flex-row p-1 p-md-2 px-lg-5">
+            <div class="card max-width-center submission-entry {{ 'submission-entry-active' if active }} {{ 'submission-entry-selected' if selected }}">
+                <div class="card-header submission-rounded" id="submission-heading-{{- number -}}" data-toggle="collapse"
+                     data-target="#submission-collapse-{{- number -}}" aria-expanded="false" aria-controls="submission-collapse-{{- number -}}">
+                    <h5 class="mb-0 panel-title">
+                        Submission {{ number }}
+                        {% if selected %}
+                                (Selected)
+                        {% endif %}
+                    </h5>
+                </div>
 
-                    <div id="submission-collapse-{{- number -}}" class="collapse" aria-labelledby="submission-heading-{{- number -}}" aria-expanded="false" data-parent="#submissions-accordion">
-                        <div class="card-body">
-                            <div class="p-1 submission-date d-none d-md-block">
-                                Submitted {{ date.strftime('%d %b at %I:%M %p') }}
-                            </div>
-                            <div class="p-1 submission-date d-none d-sm-block d-md-none">
-                                Submitted {{ date.strftime('%d/%m %H:%M') }}
-                            </div>
-                            <div class="p-1 submission-date d-sm-none">
-                                {{ date.strftime('%d/%m %H:%M') }}
-                            </div>
-                            <div class="p-1 submission-active-switch">
-                                <div class="custom-control custom-switch">
-                                    <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
-                                           {% if active %} checked {% endif %}
-                                           onchange="Submissions.setSubmissionEnabledSwitch(this, {{- id -}})">
-                                    <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
-                                </div>
+                <div id="submission-collapse-{{- number -}}" class="collapse" aria-labelledby="submission-heading-{{- number -}}" aria-expanded="false" data-parent="#submissions-accordion">
+                    <div class="card-body">
+                        <div class="p-1 submission-date d-none d-md-block">
+                            Submitted {{ date.strftime('%d %b at %I:%M %p') }}
+                        </div>
+                        <div class="p-1 submission-date d-none d-sm-block d-md-none">
+                            Submitted {{ date.strftime('%d/%m %H:%M') }}
+                        </div>
+                        <div class="p-1 submission-date d-sm-none">
+                            {{ date.strftime('%d/%m %H:%M') }}
+                        </div>
+                        <div class="p-1 submission-active-switch">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
+                                       {% if active %} checked {% endif %}
+                                       onchange="Submissions.setSubmissionEnabledSwitch(this, {{- id -}})">
+                                <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
                             </div>
                         </div>
                     </div>

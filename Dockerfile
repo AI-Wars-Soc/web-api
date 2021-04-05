@@ -18,7 +18,7 @@ ENV PYTHONPATH="/home/web_user/server:${PYTHONPATH}"
 
 # Set up repository permissions
 RUN mkdir /repositories
-RUN chown web_user /repositories
+RUN chown -R 1920 /repositories
 RUN chmod 777 /repositories
 
 WORKDIR /home/web_user
