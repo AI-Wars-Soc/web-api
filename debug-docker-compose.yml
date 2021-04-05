@@ -6,7 +6,6 @@ services:
     ports:
       - "80:8080"
     volumes:
-      - "./server:/home/web_user/server"
       - "./tmp/repositories:/repositories"
       - "./tmp/database:/database"
     networks:
