@@ -13,6 +13,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy scripts
 COPY server /home/web_user/server
+RUN chown -R 1920 /home/web_user/server
 ENV PYTHONPATH="/home/web_user/server:${PYTHONPATH}"
 
 # Set up repository permissions
