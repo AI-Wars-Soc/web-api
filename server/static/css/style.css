@@ -13,10 +13,29 @@ body {
 .footer {
   flex-shrink: 0;
 }
+.hand {
+  cursor: pointer;
+}
 
 .max-width-center {
   max-width: 1000px;
   width: 100% !important;
+}
+
+.panel-title {
+  position: relative;
+}
+.panel-title::after {
+  content: "\f107";
+  color: #333;
+  top: -2px;
+  right: 0;
+  position: absolute;
+  font-family: "FontAwesome";
+  cursor: pointer;
+}
+.panel-title[aria-expanded="true"]::after {
+  content: "\f106";
 }
 
 #leaderboard {
@@ -86,12 +105,20 @@ body {
   flex-grow: 1;
   text-align: left;
 }
-.submission-active {
+.submission-active-switch {
   width: 100px;
   text-align: end;
 }
+.submission-rounded {
+  border-radius: 14px !important;
+  border-width: 0;
+}
 .submission-entry {
-  margin: 6px;
+  border-radius: 15px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--bs-secondary);
+  margin: 4px;
   opacity: 0.5;
 }
 .submission-entry-active {
