@@ -224,6 +224,8 @@ def add_submission(user_id):
         return _make_api_failure("GIT repo already submitted")
     except repo.RepoTooBigException:
         return _make_api_failure("GIT repo is too large!")
+    except repo.CantCloneException:
+        return _make_api_failure("Failed to clone! :(")
     except repo.AlreadyCloningException:
         encoded = json.dumps({"status": "resent"})
         return Response(encoded,
@@ -251,6 +253,8 @@ def add_bot(user):
         return _make_api_failure("GIT repo already submitted")
     except repo.RepoTooBigException:
         return _make_api_failure("GIT repo is too large!")
+    except repo.CantCloneException:
+        return _make_api_failure("Failed to clone! :(")
 
     encoded = json.dumps({"status": "success", "submission_id": submission_id})
     return Response(encoded,

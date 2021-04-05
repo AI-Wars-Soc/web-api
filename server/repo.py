@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from io import StringIO
@@ -30,6 +31,10 @@ class AlreadyCloningException(RuntimeError):
 
 
 class RepoTooBigException(RuntimeError):
+    pass
+
+
+class CantCloneException(RuntimeError):
     pass
 
 
@@ -72,7 +77,8 @@ def download_repository(user_id: int, url: str) -> str:
 
         sh.git.archive("--output=" + archive_dir_str, "--format=tar", "HEAD", _cwd=clone_dir_str)
     except Exception as e:
-        raise e
+        logging.exception(e)
+        raise CantCloneException(url)
     finally:
         if clone_dir.exists():
             rmtree(clone_dir_str)

@@ -15,6 +15,11 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY server /home/web_user/server
 ENV PYTHONPATH="/home/web_user/server:${PYTHONPATH}"
 
+# Set up repository permissions
+RUN mkdir /repositories
+RUN chown web_user /repositories
+RUN chmod 777 /repositories
+
 WORKDIR /home/web_user
 USER web_user
 CMD [ "python3",  "server/main.py" ]
