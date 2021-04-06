@@ -101,13 +101,11 @@ body {
   width: 50px;
   text-align: left;
 }
+.submission-url {
+}
 .submission-date {
-  flex-grow: 1;
-  text-align: left;
 }
 .submission-active-switch {
-  width: 100px;
-  text-align: end;
 }
 .submission-rounded {
   border-radius: 14px !important;

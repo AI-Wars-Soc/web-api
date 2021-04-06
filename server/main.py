@@ -305,6 +305,24 @@ def get_leaderboard_over_time(user_id):
                     mimetype='application/json')
 
 
+@app.route('/api/get_submission_summary_graph', methods=['POST'])
+@ensure_logged_in
+def get_submission_summary_graph(user_id):
+    json_in = request.json
+    submission_id = json_in["submission_id"]
+
+    with cuwais.database.create_session() as database_session:
+        if not data.submission_is_owned_by_user(database_session, submission_id, user_id):
+            return _make_api_failure("You do not own that submission!")
+
+        summary_data = data.get_submission_summary_data(database_session, submission_id)
+
+    encoded = json.dumps(summary_data)
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
 @app.errorhandler(404)
 def page_404(e):
     return page_not_found()

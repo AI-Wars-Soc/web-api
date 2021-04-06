@@ -185,6 +185,46 @@ def set_submission_enabled(database_session, submission_id: int, enabled: bool):
     database_session.commit()
 
 
+def get_submission_summary_data(database_session, submission_id: int):
+    healthy_results = database_session.query(
+        func.count(Result.id).label('healthies')
+    ).join(Submission.results)\
+        .group_by(Submission.id)\
+        .filter(Submission.id == submission_id, Result.healthy == True)\
+        .first()
+
+    healthy_results = 0 if healthy_results is None else healthy_results[0]
+
+    total_results = database_session.query(
+        func.count(Result.id).label('total')
+    ).join(Submission.results)\
+        .group_by(Submission.id)\
+        .filter(Submission.id == submission_id)\
+        .first()[0]
+
+    total_results = 0 if total_results is None else total_results[0]
+
+    wins = database_session.query(
+        func.count(Result.id).label('wins')
+    ).join(Submission.results)\
+        .group_by(Submission.id)\
+        .filter(Submission.id == submission_id, Result.outcome == Outcome.Win.value)\
+        .first()[0]
+
+    wins = 0 if wins is None else wins[0]
+
+    losses = database_session.query(
+        func.count(Result.id).label('losses')
+    ).join(Submission.results)\
+        .group_by(Submission.id)\
+        .filter(Submission.id == submission_id, Result.outcome == Outcome.Loss.value)\
+        .first()[0]
+
+    losses = 0 if losses is None else losses[0]
+
+    return {"total": total_results, "healthy": healthy_results, "wins": wins, "losses": losses}
+
+
 def get_all_bot_submissions(database_session) -> List[Tuple[User, Submission]]:
     return database_session.query(User, Submission).filter(User.is_bot == True).join(User.submissions).all()
 

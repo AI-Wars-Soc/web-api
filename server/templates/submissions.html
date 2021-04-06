@@ -9,7 +9,7 @@
         </p>
     </div>
     <!-- Submissions -->
-    {% macro submission(number, id, date, active, selected) -%}
+    {% macro submission(number, id, date, url, active, selected) -%}
         <div class="d-flex justify-content-center w-100 flex-row p-1 p-md-2 px-lg-5">
             <div class="card max-width-center submission-entry {{ 'submission-entry-active' if active }} {{ 'submission-entry-selected' if selected }}">
                 <div class="card-header submission-rounded" id="submission-heading-{{- number -}}" data-toggle="collapse"
@@ -24,21 +24,25 @@
 
                 <div id="submission-collapse-{{- number -}}" class="collapse" aria-labelledby="submission-heading-{{- number -}}" aria-expanded="false" data-parent="#submissions-accordion">
                     <div class="card-body">
-                        <div class="p-1 submission-date d-none d-md-block">
-                            Submitted {{ date.strftime('%d %b at %I:%M %p') }}
-                        </div>
-                        <div class="p-1 submission-date d-none d-sm-block d-md-none">
-                            Submitted {{ date.strftime('%d/%m %H:%M') }}
-                        </div>
-                        <div class="p-1 submission-date d-sm-none">
-                            {{ date.strftime('%d/%m %H:%M') }}
-                        </div>
-                        <div class="p-1 submission-active-switch">
-                            <div class="custom-control custom-switch">
-                                <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
-                                       {% if active %} checked {% endif %}
-                                       onchange="Submissions.setSubmissionEnabledSwitch(this, {{- id -}})">
-                                <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-12 col-md-6">
+                                    <div class="p-1 submission-date">
+                                        {{ date.strftime('%d %b at %I:%M %p') }}
+                                    </div>
+                                    <div class="p-1 submission-active-switch">
+                                        <div class="custom-control custom-switch">
+                                            <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
+                                                   {% if active %} checked {% endif %}
+                                                   onchange="Submissions.setSubmissionEnabledSwitch(this, {{- id -}})">
+                                            <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <canvas width="400" height="400" id="submissionSummaryGraph{{- id -}}">
+                                    </canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -49,7 +53,7 @@
     {% macro all_submissions(items) -%}
         <div id="submissions-accordion">
         {% for item in items %}
-            {{ submission((items|length - loop.index) + 1, item.submission_id, item.submission_date, item.active, item.submission_id == current_sub_id) }}
+            {{ submission((items|length - loop.index) + 1, item.submission_id, item.submission_date, item.url, item.active, item.submission_id == current_sub_id) }}
         {% endfor %}
         </div>
     {%- endmacro %}
@@ -66,7 +70,7 @@
                                 <div class="col-12 col-md-8 my-auto">
                                     <input type="url" class="form-control" id="repo" placeholder="https://github.com/your/repo" required>
                                 </div>
-                                <div class="col-12 col-md-2 my-auto">
+                                <div class="col-12 col-md-2 my-auto py-2 py-sm-3 py-md-0">
                                     <div class="d-flex w-100 justify-content-center justify-content-md-left">
                                         <button type="submit" class="btn btn-primary submission-submit-button">
                                             Submit

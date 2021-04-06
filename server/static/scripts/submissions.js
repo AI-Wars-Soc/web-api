@@ -4,39 +4,29 @@ const bot_name_box = $("#bot-name");
 const submit_spinner = $("#submit-spinner")
 
 class Submissions {
-    static setSubmissionEnabledSwitch(v, id) {
-        if (v.checked) {
-            Submissions.set_enabled(id, true);
-        } else {
-            Submissions.set_enabled(id, false);
-        }
-    }
-
-    static set_enabled(submission_id, enabled) {
+    static setSubmissionEnabledSwitch(checkbox, submission_id) {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/set_submission_active');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
-            if (xhr.status !== 200) {
-                Submissions.onSetEnabledFail(xhr.responseText);
-                return;
-            }
             window.location.reload();
         };
         xhr.onerror = function () {
-            Submissions.onSetEnabledFail(xhr.responseText);
+            console.log(xhr.responseText);
+            const response = JSON.parse(xhr.responseText)
+            submission_error_box.text(response.message);
+            submission_error_box.show();
+            Submissions.uncheck(checkbox, !checkbox.checked);
         };
         xhr.send(JSON.stringify({
             submission_id: submission_id,
-            enabled: enabled
+            enabled: checkbox.checked
         }));
+        window.setInterval(() => Submissions.uncheck(checkbox, !checkbox.checked), 3000);
     }
 
-    static onSetEnabledFail(response_text) {
-        console.log(response_text);
-        const response = JSON.parse(response_text)
-        submission_error_box.text(response.message);
-        submission_error_box.show();
+    static uncheck(checkbox, unchecked) {
+        checkbox.checked = unchecked;
     }
 
     static onSubmit(e) {
@@ -120,6 +110,25 @@ class Submissions {
         };
         xhr.send(JSON.stringify({
             id: id
+        }));
+    }
+
+    static makeGraph(id) {
+        const canvas_id = 'submissionSummaryGraph' + id;
+        const ctx = document.getElementById(canvas_id).getContext('2d');
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/get_submission_summary_graph');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function () {
+            console.log(xhr.responseText);
+        };
+        xhr.onerror = function () {
+            $("#" + canvas_id).hide();
+            console.log(xhr.responseText);
+        }
+        xhr.send(JSON.stringify({
+            submission_id: id
         }));
     }
 }
