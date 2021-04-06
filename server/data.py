@@ -76,7 +76,7 @@ def get_scoreboard(user_id) -> List[Dict[str, Any]]:
             ).join(User.submissions)\
                 .join(Submission.results)\
                 .join(Result.match)\
-                .filter(Result.outcome == int(outcome.value))\
+                .filter(Result.outcome == int(outcome.value), Result.healthy == True)\
                 .filter(Match.match_date > since)\
                 .group_by(User.id)\
                 .all()
@@ -186,43 +186,32 @@ def set_submission_enabled(database_session, submission_id: int, enabled: bool):
 
 
 def get_submission_summary_data(database_session, submission_id: int):
-    healthy_results = database_session.query(
-        func.count(Result.id).label('healthies')
-    ).join(Submission.results)\
-        .group_by(Submission.id)\
-        .filter(Submission.id == submission_id, Result.healthy == True)\
-        .first()
+    vs = {}
+    for outcome in Outcome:
+        c = database_session.query(
+            func.count(Result.id)
+        ).join(Submission.results)\
+            .group_by(Submission.id)\
+            .filter(Submission.id == submission_id, Result.outcome == outcome.value)\
+            .first()
 
-    healthy_results = 0 if healthy_results is None else healthy_results[0]
+        ch = database_session.query(
+            func.count(Result.id)
+        ).join(Submission.results)\
+            .group_by(Submission.id)\
+            .filter(Submission.id == submission_id,
+                    Result.outcome == outcome.value,
+                    Result.healthy == True)\
+            .first()
 
-    total_results = database_session.query(
-        func.count(Result.id).label('total')
-    ).join(Submission.results)\
-        .group_by(Submission.id)\
-        .filter(Submission.id == submission_id)\
-        .first()[0]
+        c = 0 if c is None else c[0]
+        ch = 0 if ch is None else ch[0]
 
-    total_results = 0 if total_results is None else total_results[0]
+        vs[outcome] = {"count": c, "count_healthy": ch}
 
-    wins = database_session.query(
-        func.count(Result.id).label('wins')
-    ).join(Submission.results)\
-        .group_by(Submission.id)\
-        .filter(Submission.id == submission_id, Result.outcome == Outcome.Win.value)\
-        .first()[0]
-
-    wins = 0 if wins is None else wins[0]
-
-    losses = database_session.query(
-        func.count(Result.id).label('losses')
-    ).join(Submission.results)\
-        .group_by(Submission.id)\
-        .filter(Submission.id == submission_id, Result.outcome == Outcome.Loss.value)\
-        .first()[0]
-
-    losses = 0 if losses is None else losses[0]
-
-    return {"total": total_results, "healthy": healthy_results, "wins": wins, "losses": losses}
+    return {"wins": vs[Outcome.Win]["count"], "losses": vs[Outcome.Loss]["count"], "draws": vs[Outcome.Draw]["count"],
+            "wins_healthy": vs[Outcome.Win]["count_healthy"], "losses_healthy": vs[Outcome.Loss]["count_healthy"],
+            "draws_healthy": vs[Outcome.Draw]["count_healthy"]}
 
 
 def get_all_bot_submissions(database_session) -> List[Tuple[User, Submission]]:

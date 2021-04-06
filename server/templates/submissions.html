@@ -22,7 +22,8 @@
                     </h5>
                 </div>
 
-                <div id="submission-collapse-{{- number -}}" class="collapse" aria-labelledby="submission-heading-{{- number -}}" aria-expanded="false" data-parent="#submissions-accordion">
+                <div id="submission-collapse-{{- number -}}" class="collapse submission-collapse" aria-labelledby="submission-heading-{{- number -}}"
+                     aria-expanded="false" data-parent="#submissions-accordion" data-submission-id="{{- id -}}">
                     <div class="card-body">
                         <div class="container">
                             <div class="row">
@@ -40,7 +41,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <canvas width="400" height="400" id="submissionSummaryGraph{{- id -}}">
+                                    <canvas width="400" height="400" id="submissionSummaryGraph{{- id -}}" style="display: none;">
                                     </canvas>
                                 </div>
                             </div>

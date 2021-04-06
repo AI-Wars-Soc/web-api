@@ -4,6 +4,10 @@ const bot_name_box = $("#bot-name");
 const submit_spinner = $("#submit-spinner")
 
 class Submissions {
+    constructor() {
+        this.madeGraphs = new Set();
+    }
+
     static setSubmissionEnabledSwitch(checkbox, submission_id) {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/set_submission_active');
@@ -87,7 +91,7 @@ class Submissions {
 
     static onSubmitFail(response_text) {
         console.log(response_text);
-        const response = JSON.parse(response_text)
+        const response = JSON.parse(response_text);
         submission_error_box.text(response.message);
         repo_box.effect("shake");
         submission_error_box.show();
@@ -113,15 +117,75 @@ class Submissions {
         }));
     }
 
-    static makeGraph(id) {
+    registerCollapse(s) {
+        s = $(s);
+        const t = this;
+        const id = s.data("submissionId");
+        s.on('show.bs.collapse', function () {
+            t.makeGraph(id);
+        });
+    }
+
+    makeGraph(id) {
+        if (this.madeGraphs.has(id)) {
+            return;
+        }
+        const s = this;
+
         const canvas_id = 'submissionSummaryGraph' + id;
-        const ctx = document.getElementById(canvas_id).getContext('2d');
+        $("#" + canvas_id).show();
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/get_submission_summary_graph');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
-            console.log(xhr.responseText);
+            s.madeGraphs.add(id);
+            const response = JSON.parse(xhr.responseText);
+            const ctx = document.getElementById(canvas_id).getContext('2d');
+            const color_win = "#36e5eb";
+            const color_loss = "#b536eb";
+            const colors = ["#73eb37", color_win, color_loss, "#eb3636", color_win, color_loss, "#718579", color_win, color_loss];
+            const data = {
+                labels: ['Wins', 'Wins (Healthy)', 'Wins (Crashed)',
+                    'Losses', 'Losses (Healthy)', 'Losses (Crashed)',
+                    'Draws', 'Draws (Healthy)', 'Draws (Crashed)'],
+                datasets: [
+                    {
+                        label: 'Wins & Losses',
+                        data: [response.wins, 0, 0, response.losses, 0, 0, response.draws, 0, 0],
+                        backgroundColor: colors,
+                    },
+                    {
+                        label: 'Healthy & Not',
+                        data: [0, response.wins_healthy, response.wins - response.wins_healthy,
+                            0, response.losses_healthy, response.losses - response.losses_healthy,
+                            0, response.draws_healthy, response.draws - response.draws_healthy],
+                        backgroundColor: colors,
+                    }
+                ]
+            };
+            const config = {
+                type: 'pie',
+                data: data,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                 filter: function(legendItem, data) {
+                                      return (legendItem.index % 3) == 0
+                                 }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Battle Breakdown'
+                        }
+                    }
+                },
+            };
+            const chart = new Chart(ctx, config);
         };
         xhr.onerror = function () {
             $("#" + canvas_id).hide();
@@ -133,5 +197,7 @@ class Submissions {
     }
 }
 
+const submissions = new Submissions();
 $('#submission-form').submit(Submissions.onSubmit);
 $('#bot-form').submit(Submissions.onBotSubmit);
+Array.from($(".submission-collapse")).forEach(s => submissions.registerCollapse(s));
