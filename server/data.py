@@ -168,9 +168,9 @@ def create_submission(user_id: int, url: str) -> int:
 def get_current_submission(database_session, user_id) -> Optional[Submission]:
     sub_date = database_session.query(
         func.max(Submission.submission_date).label('maxdate')
-    ).group_by(Submission.user_id) \
-        .filter(Submission.user_id == user_id) \
-        .filter(Submission.active == True) \
+    ).join(Submission.results)\
+        .group_by(Submission.user_id) \
+        .filter(Submission.user_id == user_id, Submission.active == True, Result.healthy == True) \
         .first()
 
     if sub_date is None:

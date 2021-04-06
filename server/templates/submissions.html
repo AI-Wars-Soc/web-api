@@ -12,18 +12,25 @@
     {% macro submission(number, id, date, url, healthy, tested, active, selected) -%}
         <div class="d-flex justify-content-center w-100 flex-row p-1 p-md-2 px-lg-5">
             <div class="card max-width-center submission-entry {{ 'submission-entry-active' if active }} {{ 'submission-entry-selected' if selected }}
-                    {{ 'submission-entry-invalid' if (not healthy) and tested }}">
+                    {{ 'submission-entry-invalid' if (not healthy) and tested }} {{ 'submission-entry-testing' if not tested }}">
                 <div class="card-header submission-rounded" id="submission-heading-{{- number -}}" data-toggle="collapse"
                      data-target="#submission-collapse-{{- number -}}" aria-expanded="false" aria-controls="submission-collapse-{{- number -}}">
-                    <h5 class="mb-0 panel-title">
+                    <div class="mb-0 panel-title">
+                    <span class="h5">
                         Submission {{ number }}
+                    </span>
+                    <span class="h6 font-weight-bold mx-1 mx-md-3">
                         {% if selected %}
-                            (Selected)
+                            Selected
                         {% endif %}
                         {% if not tested %}
-                            [Testing]
+                            Testing
                         {% endif %}
-                    </h5>
+                        {% if not healthy and tested %}
+                            Invalid
+                        {% endif %}
+                    </span>
+                    </div>
                 </div>
 
                 <div id="submission-collapse-{{- number -}}" class="collapse submission-collapse" aria-labelledby="submission-heading-{{- number -}}"
@@ -35,6 +42,7 @@
                                     <div class="p-1 submission-date">
                                         {{ date.strftime('%d %b at %I:%M %p') }}
                                     </div>
+                                    {% if healthy %}
                                     <div class="p-1 submission-active-switch">
                                         <div class="custom-control custom-switch">
                                             <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- id -}}"
@@ -43,10 +51,13 @@
                                             <label class="custom-control-label" for="enabledSwitch{{- id -}}">{% if active %}Enabled{% else %}Disabled{% endif %}</label>
                                         </div>
                                     </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-11 col-md-6">
+                                    {% if healthy %}
                                     <canvas width="100" height="100" class="w-100" id="submissionSummaryGraph{{- id -}}" style="display: none;">
                                     </canvas>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

@@ -133,7 +133,11 @@ class Submissions {
         const s = this;
 
         const canvas_id = 'submissionSummaryGraph' + id;
-        $("#" + canvas_id).show();
+        const objs = $("#" + canvas_id);
+        if (objs.length === 0) {
+            return;
+        }
+        objs.show();
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/get_submission_summary_graph');
