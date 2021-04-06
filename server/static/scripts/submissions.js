@@ -144,23 +144,27 @@ class Submissions {
             const ctx = document.getElementById(canvas_id).getContext('2d');
             const color_win = "#36e5eb";
             const color_loss = "#b536eb";
-            const colors = ["#73eb37", color_win, color_loss, "#eb3636", color_win, color_loss, "#718579", color_win, color_loss];
+            const colors = ["#73eb37", color_win, color_loss, "#eb3636", color_win, color_loss, "#718579", color_win, color_loss, color_win, color_loss];
+            let center_hidden = true;
             const data = {
                 labels: ['Wins', 'Wins (Healthy)', 'Wins (Crashed)',
                     'Losses', 'Losses (Healthy)', 'Losses (Crashed)',
-                    'Draws', 'Draws (Healthy)', 'Draws (Crashed)'],
+                    'Draws', 'Draws (Healthy)', 'Draws (Crashed)',
+                    'Healthy', 'Crashed'],
                 datasets: [
                     {
                         label: 'Wins & Losses',
-                        data: [response.wins, 0, 0, response.losses, 0, 0, response.draws, 0, 0],
+                        data: [response.wins, 0, 0, response.losses, 0, 0, response.draws, 0, 0, 0, 0],
                         backgroundColor: colors,
                     },
                     {
                         label: 'Healthy & Not',
                         data: [0, response.wins_healthy, response.wins - response.wins_healthy,
                             0, response.losses_healthy, response.losses - response.losses_healthy,
-                            0, response.draws_healthy, response.draws - response.draws_healthy],
+                            0, response.draws_healthy, response.draws - response.draws_healthy,
+                            0, 0],
                         backgroundColor: colors,
+                        hidden: center_hidden,
                     }
                 ]
             };
@@ -168,15 +172,31 @@ class Submissions {
                 type: 'pie',
                 data: data,
                 options: {
+                    cutout: "33%",
                     responsive: true,
                     plugins: {
                         legend: {
                             position: 'top',
                             labels: {
-                                 filter: function(legendItem, data) {
-                                      return (legendItem.index % 3) == 0
-                                 }
-                            }
+                                 filter(legendItem, data) {
+                                     if (legendItem.index >= 9) {
+                                         return !center_hidden;
+                                     }
+                                     return (legendItem.index % 3) == 0;
+                                 },
+                            },
+                            onClick(e, legendItem, legend) {
+                                // Stop legend selection and instead toggle crashed
+                                if (this.chart.isDatasetVisible(1)) {
+                                    this.chart.options.cutout = "50%";
+                                    center_hidden = true;
+                                    this.chart.hide(1);
+                                } else {
+                                    this.chart.options.cutout = "33%";
+                                    center_hidden = false;
+                                    this.chart.show(1);
+                                }
+                            },
                         },
                         title: {
                             display: true,
@@ -185,7 +205,7 @@ class Submissions {
                     }
                 },
             };
-            const chart = new Chart(ctx, config);
+            s.chart = new Chart(ctx, config);
         };
         xhr.onerror = function () {
             $("#" + canvas_id).hide();

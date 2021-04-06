@@ -129,6 +129,13 @@ body {
   border-color: var(--bs-secondary);
   margin: 0;
 }
+.submission-entry-invalid {
+  background: repeating-linear-gradient(45deg,
+  rgba(235, 54, 54, 0.3),
+  rgba(235, 54, 54, 0.3) 10px,
+  rgba(235, 54, 54, 0.6) 10px,
+  rgba(235, 54, 54, 0.6) 20px);
+}
 .submission-submit-button {
   max-width: 100px;
   width: 100% !important;

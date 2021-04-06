@@ -1,12 +1,12 @@
 import os
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Tuple, Dict, Union, Any
+from typing import Optional, List, Tuple, Dict, Any
 
 import cuwais
 from cuwais.common import Outcome
 from cuwais.database import User, Submission, Result, Match
 from flask import session
-from sqlalchemy import select, func, and_, desc
+from sqlalchemy import select, func, desc
 from sqlalchemy.orm import Session
 
 from server import repo
@@ -128,7 +128,29 @@ def get_all_user_submissions(database_session: Session, user_id: int, private=Fa
         select(Submission).where(Submission.user_id == user_id).order_by(Submission.submission_date)
     ).all()
 
-    return [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in reversed(subs)]
+    sub_dicts = [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in reversed(subs)]
+    sub_ids = {sub["submission_id"] for sub in sub_dicts}
+
+    if private:
+        untested = database_session.query(Submission.id) \
+            .outerjoin(Submission.results) \
+            .filter(Result.id == None, Submission.id.in_(sub_ids)) \
+            .all()
+        untested_ids = {u[0] for u in untested}
+
+        healthy = database_session.query(
+            Submission.id,
+        ).join(Submission.results) \
+            .group_by(Submission.id) \
+            .filter(Result.healthy == True, Submission.id.in_(sub_ids)) \
+            .all()
+        healthy_ids = {u[0] for u in healthy}
+
+        sub_dicts = [{**sub, "tested": sub["submission_id"] not in untested_ids,
+                      "healthy": sub["submission_id"] in healthy_ids}
+                     for sub in sub_dicts]
+
+    return sub_dicts
 
 
 def create_submission(user_id: int, url: str) -> int:
