@@ -8,14 +8,8 @@
             The current standings
         </p>
     </div>
-    <div class="px-3 d-none d-md-block">
-        <p>
-            The leaderboard is calculated every few minutes, and your browser should automatically show any
-            new results. There is no need to refresh this page
-        </p>
-    </div>
 
-    {% macro leaderboard_entry(position, name, wins, losses, draws, wld, score, is_header, is_you, is_bot) %}
+    {% macro leaderboard_entry(position, name, wins, losses, draws, score, is_header, is_you, is_bot) %}
     <div class="p-1 px-md-3" id="leaderboard-entry-{{- position }}">
         <div class="px-lg-5 d-flex justify-content-center">
             <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission
@@ -27,17 +21,14 @@
                 <div class="leaderboard-name">
                     {{ name }}
                 </div>
-                <div class="leaderboard-wins leaderboard-kda d-none d-md-block">
+                <div class="leaderboard-wins d-none d-md-block">
                     {{ wins }}
                 </div>
-                <div class="leaderboard-losses leaderboard-kda d-none d-md-block">
+                <div class="leaderboard-losses d-none d-md-block">
                     {{ losses }}
                 </div>
-                <div class="leaderboard-draws leaderboard-kda d-none d-md-block">
+                <div class="leaderboard-draws d-none d-md-block">
                     {{ draws }}
-                </div>
-                <div class="leaderboard-kda d-none d-sm-block d-md-none">
-                    {{ wld }}
                 </div>
                 <div class="leaderboard-spacer d-none d-lg-block">
                 </div>
@@ -49,15 +40,14 @@
     </div>
     {% endmacro %}
     {% macro all_leaderboard(items) %}
-        {{ leaderboard_entry("Position", "Name", "Wins", "Losses", "Draws", "W/L/D", "Score", True, False, False) }}
+        {{ leaderboard_entry("Position", "Name", "Wins", "Losses", "Draws", "Score", True, False, False) }}
         {% for item in items %}
             {{ leaderboard_entry(loop.index, item.user.display_name,
             human_format(item.outcomes.wins), human_format(item.outcomes.losses), human_format(item.outcomes.draws),
-            "%s/%s/%s" % (human_format(item.outcomes.wins), human_format(item.outcomes.losses), human_format(item.outcomes.draws)),
             "%.0f" % item.score, False, item.is_you, item.user.is_bot) }}
         {% endfor %}
     {% endmacro %}
-    <div class="d-flex justify-content-center py-3 px-lg-2 mx-lg-3 mx-xl-5" id="overTimeChartContainer">
+    <div class="d-none d-sm-flex justify-content-center py-3 px-lg-2 mx-lg-3 mx-xl-5" id="overTimeChartContainer">
 
     </div>
     <div class="d-flex justify-content-center">

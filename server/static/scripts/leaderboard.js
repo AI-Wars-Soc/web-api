@@ -41,7 +41,7 @@ class Leaderboard {
         return $("#" + Leaderboard.get_entry_id(index));
     }
 
-    fade_in() {
+    fade_in(f_after) {
         let index = 0;
         let item = Leaderboard.get_leaderboard_item(index);
         while(item.length !== 0) {
@@ -52,29 +52,11 @@ class Leaderboard {
             index++;
             item = Leaderboard.get_leaderboard_item(index);
         }
+        window.setTimeout(f_after, this.delta * index + this.duration);
     }
 
     static fade_in_one(entry, duration) {
         entry.show("slide", {direction: "right"}, duration);
-    }
-
-    fade_out_and_reload() {
-        let index = 0;
-        let item = Leaderboard.get_leaderboard_item(index);
-        while(item.length !== 0) {
-            const delay = this.delta * index;
-            window.setTimeout(Leaderboard.fade_out_one, delay, item, this.duration);
-
-            index++;
-            item = Leaderboard.get_leaderboard_item(index);
-        }
-
-        const delay = this.delta * index + this.duration;
-        window.setTimeout(() => window.location.reload(), delay);
-    }
-
-    static fade_out_one(entry, duration) {
-        entry.hide("slide", {direction: "left"}, duration);
     }
 
 
@@ -108,7 +90,7 @@ class Leaderboard {
         for (let i = 0; i < user_ids.length; i++) {
             const user_id = user_ids[i];
             const points = new Array(timestamps.length);
-            points.fill(initial_score);
+            points.fill(NaN);
             user_id_points.set(user_id, points);
         }
 
@@ -119,7 +101,10 @@ class Leaderboard {
             const points = user_id_points.get("" + delta.user_id);
 
             for (let j = timestamp_i; j < points.length; j++){
-                points[timestamp_i] += delta.delta;
+                if (isNaN(points[j])) {
+                    points[j] = initial_score;
+                }
+                points[j] += delta.delta;
             }
         }
 
@@ -155,7 +140,7 @@ class Leaderboard {
     }
 
     static make_graph_dom() {
-        $("#overTimeChartContainer").append($("<canvas />", {id: "overTimeChart"}));
+        $("#overTimeChartContainer").append($("<canvas />", {id: "overTimeChart"}).hide());
     }
 
     make_graph() {
@@ -175,7 +160,6 @@ class Leaderboard {
                 data: data,
                 options: {
                     responsive: true,
-                    spanGaps: true,
                     plugins: {
                         title: {
                             display: false,
@@ -198,13 +182,12 @@ class Leaderboard {
                                 display: true,
                                 text: 'Score'
                             },
-                            suggestedMin: 0,
-                            suggestedMax: 2000
                         }
                     }
                 },
             };
             this.chart = new Chart(ctx, config);
+            $("#overTimeChart").show("slow");
         };
         xhr.send();
     }
@@ -212,5 +195,4 @@ class Leaderboard {
 
 leaderboard = new Leaderboard(1000, 250);
 
-leaderboard.fade_in();
-window.setInterval(() => leaderboard.fade_out_and_reload(), 5 * 60 * 1000);
+leaderboard.fade_in(() => leaderboard.make_graph());
