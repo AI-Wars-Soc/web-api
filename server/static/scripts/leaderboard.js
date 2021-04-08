@@ -31,6 +31,13 @@ class Leaderboard {
     constructor(duration = 1000, delta = 250) {
         this.duration = duration;
         this.delta = delta;
+
+        this.seenBefore = localStorage.seenLeaderboard === '1';
+        localStorage.seenLeaderboard = '1';
+    }
+
+    static reset() {
+        localStorage.seenLeaderboard = '0';
     }
 
     static get_entry_id(index) {
@@ -42,6 +49,11 @@ class Leaderboard {
     }
 
     fade_in(f_after) {
+        if (this.seenBefore) {
+            f_after();
+            return;
+        }
+
         let index = 0;
         let item = Leaderboard.get_leaderboard_item(index);
         while(item.length !== 0) {
@@ -144,6 +156,50 @@ class Leaderboard {
     }
 
     make_graph() {
+        // Make graph object
+        Leaderboard.make_graph_dom();
+        const ctx = document.getElementById('overTimeChart').getContext('2d');
+        const config = {
+            type: 'line',
+            data: [],
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: false,
+                        text: 'Leaderboard'
+                    },
+                },
+                interaction: {
+                intersect: false,
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Score'
+                        },
+                    }
+                }
+            },
+        };
+        this.chart = new Chart(ctx, config);
+
+        const chart_jquery = $("#overTimeChart");
+        if (this.seenBefore) {
+            chart_jquery.show();
+        } else {
+            chart_jquery.show("blind");
+        }
+
+        const leaderboard = this;
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/get_leaderboard_over_time');
         xhr.setRequestHeader('Content-Type', 'application/json');
@@ -151,43 +207,8 @@ class Leaderboard {
             const response = JSON.parse(xhr.responseText);
             const json_data = response.data;
 
-            Leaderboard.make_graph_dom();
-
-            const ctx = document.getElementById('overTimeChart').getContext('2d');
-            const data = Leaderboard.get_graph_data(json_data.users, json_data.deltas, json_data.initial_score);
-            const config = {
-                type: 'line',
-                data: data,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        title: {
-                            display: false,
-                            text: 'Leaderboard'
-                        },
-                    },
-                    interaction: {
-                    intersect: false,
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Score'
-                            },
-                        }
-                    }
-                },
-            };
-            this.chart = new Chart(ctx, config);
-            $("#overTimeChart").show("slow");
+            leaderboard.chart.data = Leaderboard.get_graph_data(json_data.users, json_data.deltas, json_data.initial_score);
+            leaderboard.chart.update();
         };
         xhr.send();
     }
