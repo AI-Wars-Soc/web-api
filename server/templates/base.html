@@ -5,13 +5,15 @@
         integrity="{{ uri }}"
         crossorigin="anonymous"></script>
 {% endmacro %}
-{% macro css(filename) %}
+{% macro css(filename, id) %}
+    {% set id = id|default('css'+filename) %}
     {% set url = url_for('static', filename=filename) %}
     {% set uri =sri(url) %}
 <link href="{{ url + "?" + uri }}"
       integrity="{{ uri }}"
       rel="stylesheet"
-      crossorigin="anonymous">
+      crossorigin="anonymous"
+      id="{{ id }}">
 {% endmacro %}
 
 <!-- templates/base.html -->
@@ -35,6 +37,10 @@
     <link rel="stylesheet" crossorigin="anonymous"
           id="bootswatch-active">
 
+    {{ css('css/style-dark.css', 'style-dark') }}
+    {{ css('css/style-light.css', 'style-light') }}
+    <link rel="stylesheet" crossorigin="anonymous"
+          id="style-active">
     {{ css('css/style.css') }}
 
     <!-- Font Awesome js -->
