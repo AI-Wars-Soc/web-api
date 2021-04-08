@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Any
@@ -6,7 +7,7 @@ import cuwais
 from cuwais.common import Outcome
 from cuwais.database import User, Submission, Result, Match
 from flask import session
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, and_
 from sqlalchemy.orm import Session
 
 from server import repo
@@ -146,8 +147,34 @@ def get_all_user_submissions(database_session: Session, user_id: int, private=Fa
             .all()
         healthy_ids = {u[0] for u in healthy}
 
+        unhealthy_tested_ids = {s_id for s_id in sub_ids if s_id not in healthy_ids and s_id not in untested_ids}
+        crash_matches = database_session.query(
+            Submission.id,
+            func.max(Match.id).label("match_id")
+        ).join(Submission.results)\
+            .join(Result.match)\
+            .group_by(Submission.id)\
+            .filter(Submission.id.in_(unhealthy_tested_ids))\
+            .subquery()
+
+        crash_recordings = database_session.query(
+            Submission.id,
+            Match.recording
+        ).join(Submission.results)\
+            .join(Result.match)\
+            .join(
+            crash_matches,
+            and_(
+                Submission.id == crash_matches.c.id,
+                Match.id == crash_matches.c.match_id
+            )
+        ).all()
+
+        crash_recording_dict = {s_id: json.loads(recording) for s_id, recording in crash_recordings}
+
         sub_dicts = [{**sub, "tested": sub["submission_id"] not in untested_ids,
-                      "healthy": sub["submission_id"] in healthy_ids}
+                      "healthy": sub["submission_id"] in healthy_ids,
+                      "crash_recording": crash_recording_dict.get(sub["submission_id"], {})}
                      for sub in sub_dicts]
 
     return sub_dicts

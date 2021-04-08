@@ -51,21 +51,23 @@ body {
 .leaderboard-name {
   flex-grow: 1;
 }
-.leaderboard-kda {
-  width: 70px;
+.leaderboard-wins {
+  width: 80px;
   text-align: center;
 }
-.leaderboard-wins {
-}
 .leaderboard-losses {
+  width: 80px;
+  text-align: center;
 }
 .leaderboard-draws {
+  width: 80px;
+  text-align: center;
 }
 .leaderboard-spacer {
-  width: 30px;
+  width: 60px;
 }
 .leaderboard-score {
-  width: 70px;
+  width: 100px;
   text-align: end;
 }
 .leaderboard-submission {
@@ -130,20 +132,26 @@ body {
   margin: 0;
 }
 .submission-entry-testing {
+  background: rgba(54, 126, 235, 0.3);
+}
+.testing-stripes {
   background: repeating-linear-gradient(35deg,
-  rgba(54, 126, 235, 0.3),
-  rgba(54, 126, 235, 0.3) 10px,
-  rgba(54, 126, 235, 0.6) 10px,
-  rgba(54, 126, 235, 0.6) 20px);
+  rgba(54, 126, 235, 0.1),
+  rgba(54, 126, 235, 0.1) 10px,
+  rgba(54, 126, 235, 0.4) 10px,
+  rgba(54, 126, 235, 0.4) 20px);
   background-size: 200% 200%;
   animation: barberpole 5s linear infinite;
 }
 .submission-entry-invalid {
+  background: rgba(235, 54, 54, 0.3);
+}
+.invalid-stripes {
   background: repeating-linear-gradient(45deg,
-  rgba(235, 54, 54, 0.3),
-  rgba(235, 54, 54, 0.3) 10px,
-  rgba(235, 54, 54, 0.6) 10px,
-  rgba(235, 54, 54, 0.6) 20px);
+  rgba(235, 54, 54, 0.1),
+  rgba(235, 54, 54, 0.1) 10px,
+  rgba(235, 54, 54, 0.4) 10px,
+  rgba(235, 54, 54, 0.4) 20px);
 }
 .submission-submit-button {
   max-width: 100px;
