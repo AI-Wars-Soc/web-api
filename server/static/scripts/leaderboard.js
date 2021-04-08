@@ -112,11 +112,11 @@ class Leaderboard {
             const timestamp_i = Math.round((delta.time - timestamp_min) / timestep);
             const points = user_id_points.get("" + delta.user_id);
 
+            if (timestamp_i > 0 && isNaN(points[timestamp_i - 1])) {
+                points[timestamp_i - 1] = initial_score;
+            }
             for (let j = timestamp_i; j < points.length; j++){
                 if (isNaN(points[j])) {
-                    if (j > 0) {
-                        points[j - 1] = initial_score;
-                    }
                     points[j] = initial_score;
                 }
                 points[j] += delta.delta;
