@@ -114,6 +114,9 @@ class Leaderboard {
 
             for (let j = timestamp_i; j < points.length; j++){
                 if (isNaN(points[j])) {
+                    if (j > 0) {
+                        points[j - 1] = initial_score;
+                    }
                     points[j] = initial_score;
                 }
                 points[j] += delta.delta;
