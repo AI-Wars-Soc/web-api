@@ -7,11 +7,10 @@ from datetime import timedelta
 
 import cuwais
 import cuwais.database
-import redis
 from flask import Flask, render_template, request, abort, Response, redirect
 from flask_session import Session
 
-from server import login, data, nav, repo
+from server import login, data, nav, repo, caching
 
 app = Flask(
     __name__,
@@ -27,7 +26,7 @@ app.config["SESSION_COOKIE_NAME"] = "cuwais_session"
 app.config["SERVER_NAME"] = str(os.getenv('SERVER_NAME'))
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
 app.config["SESSION_TYPE"] = 'redis'
-app.config["SESSION_REDIS"] = redis.Redis(host='redis', port=6379)
+app.config["SESSION_REDIS"] = caching.redis_connection
 sess = Session(app)
 
 logging.basicConfig(level=logging.DEBUG if os.getenv('DEBUG') else logging.WARNING)
@@ -51,8 +50,7 @@ def ensure_logged_in(f):
 def ensure_admin(f):
     @ensure_logged_in
     def f_new(user_id):
-        with cuwais.database.create_session() as database_session:
-            user = data.get_user_from_id(database_session, user_id)
+        user = data.get_user_from_id(user_id)
         if user is None or not user.is_admin:
             return page_not_found()
         return f(user)
@@ -141,16 +139,14 @@ def leaderboard(user_id):
 @app.route('/submissions')
 @ensure_logged_in
 def submissions(user_id):
-    with cuwais.database.create_session() as database_session:
-        subs = data.get_all_user_submissions(database_session, user_id, private=True)
-        print(f"============= Subs: {subs} ==============", flush=True)
-        current_sub = data.get_current_submission(database_session, user_id)
-        return render_template(
-            'submissions.html',
-            submissions=subs,
-            current_sub_id=current_sub.id if current_sub is not None else None,
-            **nav.extract_session_objs('submissions', database_session)
-        )
+    subs = data.get_all_user_submissions(user_id, private=True)
+    current_sub = data.get_current_submission(user_id)
+    return render_template(
+        'submissions.html',
+        submissions=subs,
+        current_sub_id=current_sub.id if current_sub is not None else None,
+        **nav.extract_session_objs('submissions')
+    )
 
 
 @app.route('/me')
@@ -174,14 +170,13 @@ def admin(user):
 @app.route('/bots')
 @ensure_admin
 def bots(user):
-    with cuwais.database.create_session() as database_session:
-        bot_subs = data.get_all_bot_submissions(database_session)
-        bot_subs = [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
-        return render_template(
-            'bots.html',
-            bots=bot_subs,
-            **nav.extract_session_objs('bots', database_session)
-        )
+    bot_subs = data.get_all_bot_submissions()
+    bot_subs = [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
+    return render_template(
+        'bots.html',
+        bots=bot_subs,
+        **nav.extract_session_objs('bots')
+    )
 
 
 @app.route('/logout')
@@ -213,10 +208,9 @@ def login_google():
     data.save_user_id(user_id)
 
     response = dict()
-    with cuwais.database.create_session() as database_session:
-        user = data.get_user_from_id(database_session, user_id)
-        response["user_id"] = user.id
-        response["user_name"] = user.display_name
+    user = data.get_user_from_id(user_id)
+    response["user_id"] = user.id
+    response["user_name"] = user.display_name
 
     return Response(json.dumps(response),
                     status=200,
@@ -301,11 +295,10 @@ def set_submission_active(user_id):
     submission_id = json_in["submission_id"]
     enabled = json_in["enabled"]
 
-    with cuwais.database.create_session() as database_session:
-        if not data.submission_is_owned_by_user(database_session, submission_id, user_id):
-            return _make_api_failure("You do not own that submission!")
+    if not data.submission_is_owned_by_user(submission_id, user_id):
+        return _make_api_failure("You do not own that submission!")
 
-        data.set_submission_enabled(database_session, submission_id, enabled)
+    data.set_submission_enabled(submission_id, enabled)
 
     encoded = json.dumps({"status": "success", "submission_id": submission_id})
     return Response(encoded,
@@ -330,11 +323,10 @@ def get_submission_summary_graph(user_id):
     json_in = request.json
     submission_id = json_in["submission_id"]
 
-    with cuwais.database.create_session() as database_session:
-        if not data.submission_is_owned_by_user(database_session, submission_id, user_id):
-            return _make_api_failure("You do not own that submission!")
+    if not data.submission_is_owned_by_user(submission_id, user_id):
+        return _make_api_failure("You do not own that submission!")
 
-        summary_data = data.get_submission_summary_data(database_session, submission_id)
+    summary_data = data.get_submission_summary_data(submission_id)
 
     encoded = json.dumps(summary_data)
     return Response(encoded,

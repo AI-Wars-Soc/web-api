@@ -42,13 +42,8 @@ def make_r_nav(user: Optional[User], current_dir):
     return items
 
 
-def extract_session_objs(current_dir, database_session=None):
-    # If no session is passed in to jump off of, make a new one
-    if database_session is None:
-        with cuwais.database.create_session() as new_session:
-            return extract_session_objs(current_dir, new_session)
-
-    user = data.get_user(database_session)
+def extract_session_objs(current_dir):
+    user = data.get_user()
     return dict(
         user=user,
         l_nav=make_l_nav(user, current_dir),
