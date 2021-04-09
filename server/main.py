@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from werkzeug.middleware.profiler import ProfilerMiddleware
 import cuwais.database
-from flask import Flask, render_template, request, abort, Response, redirect
+from flask import Flask, render_template, request, abort, Response, redirect, url_for
 from flask_session import Session
 
 from server import login, data, nav, repo, caching
@@ -15,7 +15,7 @@ from server.caching import cached
 
 app = Flask(
     __name__,
-    template_folder="templates"
+    template_folder="templates",
 )
 with open("/run/secrets/secret_key") as secrets_file:
     secret = "".join(secrets_file.readlines())
@@ -36,6 +36,21 @@ app.config["SESSION_REDIS"] = caching.redis_connection
 sess = Session(app)
 
 logging.basicConfig(level=logging.DEBUG if os.getenv('DEBUG') else logging.WARNING)
+
+
+def expose_root_file(file_name):
+    file_path = "root/" + file_name
+
+    def new_endpoint():
+        return app.send_static_file(file_path)
+    new_endpoint.__name__ = name
+    app.route('/' + name)(new_endpoint)
+
+
+# Favicons
+root_path = os.path.join(app.root_path, "static/root")
+for name in [f for f in os.listdir(root_path) if os.path.isfile(os.path.join(root_path, f))]:
+    expose_root_file(name)
 
 
 def ensure_logged_in(f):
