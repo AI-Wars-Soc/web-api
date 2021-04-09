@@ -5,12 +5,13 @@ import logging
 import os
 from datetime import timedelta
 
-import cuwais
+from werkzeug.middleware.profiler import ProfilerMiddleware
 import cuwais.database
 from flask import Flask, render_template, request, abort, Response, redirect
 from flask_session import Session
 
 from server import login, data, nav, repo, caching
+from server.caching import cached
 
 app = Flask(
     __name__,
@@ -21,6 +22,11 @@ with open("/run/secrets/secret_key") as secrets_file:
     app.secret_key = secret
     app.config["SECRET_KEY"] = secret
 app.config["DEBUG"] = os.getenv('DEBUG') == 'True'
+
+if app.config["DEBUG"]:
+    app.config['PROFILE'] = True
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
+
 
 app.config["SESSION_COOKIE_NAME"] = "cuwais_session"
 app.config["SERVER_NAME"] = str(os.getenv('SERVER_NAME'))
@@ -60,6 +66,7 @@ def ensure_admin(f):
     return f_new
 
 
+@cached(ttl=0 if app.config["DEBUG"] else 600)
 def generate_sri(inp_file):
     hashed = hashlib.sha256()
 

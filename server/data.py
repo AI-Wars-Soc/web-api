@@ -8,7 +8,6 @@ from cuwais.common import Outcome
 from cuwais.database import User, Submission, Result, Match
 from flask import session
 from sqlalchemy import select, func, desc, and_
-from sqlalchemy.orm import Session
 
 from server import repo
 from server.caching import cached
@@ -32,6 +31,7 @@ def get_user() -> Optional[User]:
     return get_user_from_id(user_id)
 
 
+@cached(ttl=60)
 def get_user_from_id(user_id) -> Optional[User]:
     if user_id is None:
         return None
@@ -260,6 +260,7 @@ def set_submission_enabled(submission_id: int, enabled: bool):
         database_session.commit()
 
 
+@cached(ttl=300)
 def get_submission_summary_data(submission_id: int):
     with cuwais.database.create_session() as database_session:
         vs = {}
