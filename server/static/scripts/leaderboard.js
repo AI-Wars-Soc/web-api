@@ -80,9 +80,9 @@ class Leaderboard {
             timestamp_set.add(delta.time);
         }
         const referenced_timestamps = Array.from(timestamp_set);
-        const timestamp_min = Math.min(...referenced_timestamps);
-        const timestamp_max = Math.max(...referenced_timestamps);
         const timestep = gcd(...referenced_timestamps);
+        const timestamp_min = Math.min(...referenced_timestamps) - timestep;
+        const timestamp_max = Math.max(...referenced_timestamps);
 
         // Fill in blanks
         let timestamps = [];
