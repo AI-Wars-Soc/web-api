@@ -37,6 +37,13 @@ body {
 .panel-title[aria-expanded="true"]::after {
   content: "\f106";
 }
+.footer-link {
+  max-height: 24px;
+  color: var(--footer-link-color);
+}
+.footer-link:hover {
+  opacity: 0.5;
+}
 
 #leaderboard {
 
