@@ -44,7 +44,7 @@
         {% for item in items %}
             {{ leaderboard_entry(loop.index, item.user.display_name,
             human_format(item.outcomes.wins), human_format(item.outcomes.losses), human_format(item.outcomes.draws),
-            "%.0f" % item.score, False, item.is_you, item.user.is_bot) }}
+            item.score_text, False, item.is_you, item.user.is_bot) }}
         {% endfor %}
     {% endmacro %}
     <div class="d-none d-sm-flex justify-content-center py-3 px-lg-2 mx-lg-3 mx-xl-5" id="overTimeChartContainer">

@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Any
@@ -58,7 +59,7 @@ def make_or_get_google_user(google_id, name) -> int:
         return user.id
 
 
-@cached(ttl=300)
+@cached(ttl=0)
 def get_scoreboard_data():
     with cuwais.database.create_session() as database_session:
         user_scores = database_session.query(
@@ -67,7 +68,7 @@ def get_scoreboard_data():
         ).outerjoin(User.submissions) \
             .outerjoin(Submission.results) \
             .group_by(User.id) \
-            .order_by(desc("total_score")) \
+            .order_by("total_score") \
             .all()
 
         since = datetime.now() - timedelta(hours=24)
@@ -91,11 +92,14 @@ def get_scoreboard_data():
 
     init = int(os.getenv("INITIAL_SCORE"))
     scores = [{"user": user.to_public_dict(),
-               "score": init + (0 if score is None else score),
+               "score": 0 if score is None else (init + score),
+               "score_text": ("" if score is None else "%.0f" % (init + score)),
                "outcomes": {"wins": counts_by_outcome[Outcome.Win].get(user.id, 0),
                             "losses": counts_by_outcome[Outcome.Loss].get(user.id, 0),
                             "draws": counts_by_outcome[Outcome.Draw].get(user.id, 0)}}
-              for [user, score] in user_scores]
+              for [user, score] in reversed(user_scores)]
+
+    scores.sort(key=lambda e: e["score"], reverse=True)
 
     return scores
 

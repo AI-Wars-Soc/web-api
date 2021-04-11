@@ -107,6 +107,7 @@ class Leaderboard {
         }
 
         // Populate user data
+        // TODO: This can be done in O(n) in two passes by storing diffs then sweeping rather than O(n^2)
         for (let i = 0; i < deltas.length; i++) {
             const delta = deltas[i];
             const timestamp_i = Math.round((delta.time - timestamp_min) / timestep);
