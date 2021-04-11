@@ -64,8 +64,8 @@ def get_scoreboard_data():
         user_scores = database_session.query(
             User,
             func.sum(Result.points_delta).label("total_score")
-        ).join(User.submissions) \
-            .join(Submission.results) \
+        ).outerjoin(User.submissions) \
+            .outerjoin(Submission.results) \
             .group_by(User.id) \
             .order_by(desc("total_score")) \
             .all()
@@ -91,7 +91,7 @@ def get_scoreboard_data():
 
     init = int(os.getenv("INITIAL_SCORE"))
     scores = [{"user": user.to_public_dict(),
-               "score": init + score,
+               "score": init + (0 if score is None else score),
                "outcomes": {"wins": counts_by_outcome[Outcome.Win].get(user.id, 0),
                             "losses": counts_by_outcome[Outcome.Loss].get(user.id, 0),
                             "draws": counts_by_outcome[Outcome.Draw].get(user.id, 0)}}
@@ -118,8 +118,8 @@ def get_leaderboard_graph_data():
             User,
             func.date_trunc('hour', Match.match_date),
             func.sum(Result.points_delta).label("delta_score")
-        ).filter(Result.submission_id == Submission.id,
-                 User.id == Submission.user_id) \
+        ).join(User.submissions)\
+            .join(Submission.results)\
             .join(Result.match) \
             .group_by(func.date_trunc('hour', Match.match_date),
                       User.id)\
