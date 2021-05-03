@@ -19,7 +19,7 @@ function gcd(...arr)
 function convert_date(unix) {
     const date = new Date(unix * 1000);
 
-    const day = date.getDay();
+    const day = date.getDate();
     const month = date.getMonth();
     const hours = date.getHours();
     const minutes = "0" + date.getMinutes();
