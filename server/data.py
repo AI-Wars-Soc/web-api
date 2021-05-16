@@ -72,6 +72,18 @@ def make_or_get_google_user(google_id, name) -> int:
         return user.id
 
 
+def set_user_name_visible(user_id: int, visible: bool):
+    with cuwais.database.create_session() as database_session:
+        res = database_session.query(User).get(user_id)
+
+        if res is None:
+            return
+
+        res.display_real_name = visible
+
+        database_session.commit()
+
+
 @cached(ttl=0)
 def get_scoreboard_data():
     with cuwais.database.create_session() as database_session:
@@ -142,25 +154,26 @@ def get_leaderboard_graph_data():
                       User.id)\
             .all()
 
-    users = {}
     deltas = []
-    init = int(os.getenv("INITIAL_SCORE"))
     for user, time, delta in delta_score_buckets:
         deltas.append({"user_id": user.id, "time": time.timestamp(), "delta": delta})
-        users[user.id] = user.to_public_dict()
-        users[user.id]["is_you"] = False
-        users[user.id]["is_bot"] = user.is_bot
 
-    return {"users": users, "deltas": deltas, "initial_score": init}
+    return deltas
 
 
 def get_leaderboard_graph(user_id):
-    values = get_leaderboard_graph_data()
+    deltas = get_leaderboard_graph_data()
 
-    if user_id in values["users"]:
-        values["users"][user_id]["is_you"] = True
+    users = {}
+    init = int(os.getenv("INITIAL_SCORE"))
+    with cuwais.database.create_session() as database_session:
+        for delta in deltas:
+            other_user_id = delta['user_id']
+            user = database_session.query(User).get(other_user_id)
+            users[other_user_id] = user.to_public_dict()
+            users[other_user_id]["is_you"] = other_user_id == user_id
 
-    return values
+    return {"users": users, "deltas": deltas, "initial_score": init}
 
 
 def get_all_user_submissions(user_id: int, private=False) -> List[dict]:

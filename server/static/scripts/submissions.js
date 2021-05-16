@@ -9,6 +9,7 @@ class Submissions {
     }
 
     static setSubmissionEnabledSwitch(checkbox, submission_id) {
+        const v = checkbox.checked;
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/set_submission_active');
         xhr.setRequestHeader('Content-Type', 'application/json');
@@ -20,13 +21,12 @@ class Submissions {
             const response = JSON.parse(xhr.responseText)
             submission_error_box.text(response.message);
             submission_error_box.show();
-            Submissions.uncheck(checkbox, !checkbox.checked);
+            Submissions.uncheck(checkbox, !v);
         };
         xhr.send(JSON.stringify({
             submission_id: submission_id,
-            enabled: checkbox.checked
+            enabled: v
         }));
-        window.setInterval(() => Submissions.uncheck(checkbox, !checkbox.checked), 3000);
     }
 
     static uncheck(checkbox, unchecked) {

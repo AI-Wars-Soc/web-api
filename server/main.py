@@ -297,6 +297,20 @@ def add_bot(user):
                     mimetype='application/json')
 
 
+@app.route('/api/set_name_visible', methods=['POST'])
+@ensure_logged_in
+def remove_bot(user_id):
+    json_in = request.json
+    should_be_visible = json_in["visible"]
+
+    data.set_user_name_visible(user_id, should_be_visible)
+
+    encoded = json.dumps({"status": "success"})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
 @app.route('/api/remove_bot', methods=['POST'])
 @ensure_admin
 def remove_bot(user):
