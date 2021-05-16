@@ -10,7 +10,7 @@ from cuwais.database import User, Submission, Result, Match
 from flask import session
 from sqlalchemy import select, func, desc, and_
 
-from server import repo
+from server import repo, nickname
 from server.caching import cached
 
 
@@ -45,6 +45,18 @@ def remove_user():
     session.pop("cuwais_user_id", None)
 
 
+def generate_nickname(database_session):
+    tried = {}
+    for i in range(1000):
+        nick = nickname.get_new_name()
+        if nick in tried:
+            continue
+        if database_session.query(User).filter(User.nickname == nick).first() is None:
+            return nick
+        tried += nick
+    return "[FAILED TO GENERATE NICKNAME]"
+
+
 def make_or_get_google_user(google_id, name) -> int:
     with cuwais.database.create_session() as database_session:
         user = database_session.execute(
@@ -52,7 +64,8 @@ def make_or_get_google_user(google_id, name) -> int:
         ).scalar_one_or_none()
 
         if user is None:
-            user = User(display_name=name, google_id=google_id)
+            nick = generate_nickname(database_session)
+            user = User(nickname=nick, real_name=name, google_id=google_id)
             database_session.add(user)
             database_session.commit()
 
