@@ -232,7 +232,8 @@ def login_google():
     response = dict()
     user = data.get_user_from_id(user_id)
     response["user_id"] = user.id
-    response["user_name"] = user.display_name
+    response["real_name"] = user.real_name
+    response["nickname"] = user.nickname
 
     return Response(json.dumps(response),
                     status=200,
@@ -299,7 +300,7 @@ def add_bot(user):
 
 @app.route('/api/set_name_visible', methods=['POST'])
 @ensure_logged_in
-def remove_bot(user_id):
+def set_name_visible(user_id):
     json_in = request.json
     should_be_visible = json_in["visible"]
 

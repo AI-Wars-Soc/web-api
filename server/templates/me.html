@@ -27,7 +27,7 @@
                 }
             </script>
             <input type="checkbox" class="custom-control-input" id="realNameSwitch"
-                   onchange="changeNameVisibility(this)" checked="{{ user.display_real_name }}">
+                   onchange="changeNameVisibility(this)" {% if user.display_real_name %}checked{% endif %}>
             <label class="custom-control-label" for="realNameSwitch">Display your real name on the leaderboard</label>
         </div>
         <div class="custom-control custom-switch">

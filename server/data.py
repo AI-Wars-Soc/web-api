@@ -84,7 +84,7 @@ def set_user_name_visible(user_id: int, visible: bool):
         database_session.commit()
 
 
-@cached(ttl=0)
+@cached(ttl=300)
 def get_scoreboard_data():
     with cuwais.database.create_session() as database_session:
         user_scores = database_session.query(
@@ -116,7 +116,7 @@ def get_scoreboard_data():
     counts_by_outcome = {o: {user_id: count for user_id, count in counts[o]} for o in Outcome}
 
     init = int(os.getenv("INITIAL_SCORE"))
-    scores = [{"user": user.to_public_dict(),
+    scores = [{"user_id": user.id,
                "score": 0 if score is None else (init + score),
                "score_text": ("" if score is None else "%.0f" % (init + score)),
                "outcomes": {"wins": counts_by_outcome[Outcome.Win].get(user.id, 0),
@@ -132,10 +132,12 @@ def get_scoreboard_data():
 def get_scoreboard(user_id) -> List[Dict[str, Any]]:
     scores = get_scoreboard_data()
 
-    scores = [{
-        "is_you": user_id == vs["user"]["user_id"],
-        **vs
-    } for vs in scores]
+    with cuwais.database.create_session() as database_session:
+        scores = [{
+            "user": database_session.query(User).get(vs["user_id"]).to_public_dict(),
+            "is_you": user_id == vs["user_id"],
+            **vs
+        } for vs in scores]
 
     return scores
 
