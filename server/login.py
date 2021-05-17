@@ -1,6 +1,7 @@
 import logging
 import os
 
+from cuwais.database import User
 from google.auth import exceptions
 from google.oauth2 import id_token
 import google.auth.transport.requests
@@ -17,7 +18,7 @@ cached_session = cachecontrol.CacheControl(session)
 CLIENT_ID = str(os.getenv('CLIENT_ID'))
 
 
-def get_user_id_from_google_token(token) -> int:
+def get_user_from_google_token(db_session, token) -> User:
     id_info = None
     try:
         # Specify the CLIENT_ID of the app that accesses the backend:
@@ -48,6 +49,6 @@ def get_user_id_from_google_token(token) -> int:
     google_id = str(id_info['sub'])
     name = str(id_info['name'])
 
-    user_id = data.make_or_get_google_user(google_id, name)
+    user = data.make_or_get_google_user(db_session, google_id, name)
 
-    return user_id
+    return user

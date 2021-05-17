@@ -51,5 +51,5 @@ animals = ["Hedgehog", "Crab", "Bald eagle", "Reindeer", "Mouse", "Robin", "Leop
 
 def get_new_name():
     a = positive_adjectives[random.randint(0, len(positive_adjectives) - 1)]
-    b = animals[random.randint(0, len(positive_adjectives) - 1)]
+    b = animals[random.randint(0, len(animals) - 1)]
     return f"{a} {b}".title()

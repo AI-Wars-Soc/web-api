@@ -1,6 +1,5 @@
 from typing import Optional
 
-import cuwais
 from cuwais.database import User
 
 from server import data
@@ -42,8 +41,7 @@ def make_r_nav(user: Optional[User], current_dir):
     return items
 
 
-def extract_session_objs(current_dir):
-    user = data.get_user()
+def extract_session_objs(user, current_dir):
     return dict(
         user=user,
         l_nav=make_l_nav(user, current_dir),

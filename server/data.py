@@ -1,5 +1,4 @@
 import json
-import math
 import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Any
@@ -18,76 +17,53 @@ def save_user_id(user_id):
     session["cuwais_user_id"] = user_id
 
 
-def get_user_id() -> Optional[int]:
-    val = session.get("cuwais_user_id", "null")
-    if val == "null":
-        val = None
-    else:
-        val = int(val)
-    return val
-
-
-def get_user() -> Optional[User]:
-    user_id = get_user_id()
-    return get_user_from_id(user_id)
-
-
-@cached(ttl=60)
-def get_user_from_id(user_id) -> Optional[User]:
+def get_user(db_session) -> Optional[User]:
+    user_id = session.get("cuwais_user_id")
     if user_id is None:
         return None
 
-    with cuwais.database.create_session() as database_session:
-        return database_session.query(User).get(user_id)
+    user_id = int(user_id)
+
+    return db_session.query(User).get(user_id)
 
 
 def remove_user():
     session.pop("cuwais_user_id", None)
 
 
-def generate_nickname(database_session):
+def generate_nickname(db_session):
     tried = {}
     for i in range(1000):
         nick = nickname.get_new_name()
         if nick in tried:
             continue
-        if database_session.query(User).filter(User.nickname == nick).first() is None:
+        if db_session.query(User).filter(User.nickname == nick).first() is None:
             return nick
         tried += nick
     return "[FAILED TO GENERATE NICKNAME]"
 
 
-def make_or_get_google_user(google_id, name) -> int:
-    with cuwais.database.create_session() as database_session:
-        user = database_session.execute(
-            select(User).where(User.google_id == google_id)
-        ).scalar_one_or_none()
+def make_or_get_google_user(db_session, google_id, name) -> User:
+    user = db_session.execute(
+        select(User).where(User.google_id == google_id)
+    ).scalar_one_or_none()
 
-        if user is None:
-            nick = generate_nickname(database_session)
-            user = User(nickname=nick, real_name=name, google_id=google_id)
-            database_session.add(user)
-            database_session.commit()
+    if user is None:
+        nick = generate_nickname(db_session)
+        user = User(nickname=nick, real_name=name, google_id=google_id)
+        db_session.add(user)
 
-        return user.id
+    return user
 
 
-def set_user_name_visible(user_id: int, visible: bool):
-    with cuwais.database.create_session() as database_session:
-        res = database_session.query(User).get(user_id)
-
-        if res is None:
-            return
-
-        res.display_real_name = visible
-
-        database_session.commit()
+def set_user_name_visible(db_session, user: User, visible: bool):
+    user.display_real_name = visible
 
 
 @cached(ttl=300)
 def get_scoreboard_data():
-    with cuwais.database.create_session() as database_session:
-        user_scores = database_session.query(
+    with cuwais.database.create_session() as db_session:
+        user_scores = db_session.query(
             User,
             func.sum(Result.points_delta).label("total_score")
         ).outerjoin(User.submissions) \
@@ -99,7 +75,7 @@ def get_scoreboard_data():
         since = datetime.now() - timedelta(hours=24)
         counts = {}
         for outcome in Outcome:
-            user_outcome_counts = database_session.query(
+            user_outcome_counts = db_session.query(
                 User.id,
                 func.count(Result.id)
             ).join(User.submissions)\
@@ -129,23 +105,22 @@ def get_scoreboard_data():
     return scores
 
 
-def get_scoreboard(user_id) -> List[Dict[str, Any]]:
+def get_scoreboard(db_session, user) -> List[Dict[str, Any]]:
     scores = get_scoreboard_data()
 
-    with cuwais.database.create_session() as database_session:
-        scores = [{
-            "user": database_session.query(User).get(vs["user_id"]).to_public_dict(),
-            "is_you": user_id == vs["user_id"],
-            **vs
-        } for vs in scores]
+    scores = [{
+        "user": db_session.query(User).get(vs["user_id"]).to_public_dict(),
+        "is_you": user.id == vs["user_id"],
+        **vs
+    } for vs in scores]
 
     return scores
 
 
 @cached(ttl=300)
 def get_leaderboard_graph_data():
-    with cuwais.database.create_session() as database_session:
-        delta_score_buckets = database_session.query(
+    with cuwais.database.create_session() as db_session:
+        delta_score_buckets = db_session.query(
             User,
             func.date_trunc('hour', Match.match_date),
             func.sum(Result.points_delta).label("delta_score")
@@ -163,116 +138,112 @@ def get_leaderboard_graph_data():
     return deltas
 
 
-def get_leaderboard_graph(user_id):
+def get_leaderboard_graph(db_session, user_id):
     deltas = get_leaderboard_graph_data()
 
     users = {}
     init = int(os.getenv("INITIAL_SCORE"))
-    with cuwais.database.create_session() as database_session:
-        for delta in deltas:
-            other_user_id = delta['user_id']
-            user = database_session.query(User).get(other_user_id)
-            users[other_user_id] = user.to_public_dict()
-            users[other_user_id]["is_you"] = other_user_id == user_id
+    for delta in deltas:
+        other_user_id = delta['user_id']
+        user = db_session.query(User).get(other_user_id)
+        users[other_user_id] = user.to_public_dict()
+        users[other_user_id]["is_you"] = other_user_id == user_id
 
     return {"users": users, "deltas": deltas, "initial_score": init}
 
 
-def get_all_user_submissions(user_id: int, private=False) -> List[dict]:
-    with cuwais.database.create_session() as database_session:
-        subs = database_session.execute(
-            select(Submission).where(Submission.user_id == user_id).order_by(Submission.submission_date)
+def get_all_user_submissions(db_session, user: User, private=False) -> List[dict]:
+    user_id = user.id
+    subs = db_session.execute(
+        select(Submission).where(Submission.user_id == user_id).order_by(Submission.submission_date)
+    ).all()
+
+    sub_dicts = [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in reversed(subs)]
+    sub_ids = {sub["submission_id"] for sub in sub_dicts}
+
+    if private:
+        untested = db_session.query(Submission.id) \
+            .outerjoin(Submission.results) \
+            .filter(Result.id == None, Submission.id.in_(sub_ids)) \
+            .all()
+        untested_ids = {u[0] for u in untested}
+
+        healthy = db_session.query(
+            Submission.id,
+        ).join(Submission.results) \
+            .group_by(Submission.id) \
+            .filter(Result.healthy == True, Submission.id.in_(sub_ids)) \
+            .all()
+        healthy_ids = {u[0] for u in healthy}
+
+        unhealthy_tested_ids = {s_id for s_id in sub_ids if s_id not in healthy_ids and s_id not in untested_ids}
+        crash_matches = db_session.query(
+            Submission.id,
+            func.max(Match.id).label("match_id")
+        ).join(Submission.results)\
+            .join(Result.match)\
+            .group_by(Submission.id)\
+            .filter(Submission.id.in_(unhealthy_tested_ids))\
+            .subquery()
+
+        crash_recordings = db_session.query(
+            Submission.id,
+            Match.recording
+        ).join(Submission.results)\
+            .join(Result.match)\
+            .join(
+            crash_matches,
+            and_(
+                Submission.id == crash_matches.c.id,
+                Match.id == crash_matches.c.match_id
+            )
         ).all()
 
-        sub_dicts = [sub.to_private_dict() if private else sub.to_public_dict() for [sub] in reversed(subs)]
-        sub_ids = {sub["submission_id"] for sub in sub_dicts}
+        crash_recording_dict = {s_id: json.loads(recording) for s_id, recording in crash_recordings}
 
-        if private:
-            untested = database_session.query(Submission.id) \
-                .outerjoin(Submission.results) \
-                .filter(Result.id == None, Submission.id.in_(sub_ids)) \
-                .all()
-            untested_ids = {u[0] for u in untested}
-
-            healthy = database_session.query(
-                Submission.id,
-            ).join(Submission.results) \
-                .group_by(Submission.id) \
-                .filter(Result.healthy == True, Submission.id.in_(sub_ids)) \
-                .all()
-            healthy_ids = {u[0] for u in healthy}
-
-            unhealthy_tested_ids = {s_id for s_id in sub_ids if s_id not in healthy_ids and s_id not in untested_ids}
-            crash_matches = database_session.query(
-                Submission.id,
-                func.max(Match.id).label("match_id")
-            ).join(Submission.results)\
-                .join(Result.match)\
-                .group_by(Submission.id)\
-                .filter(Submission.id.in_(unhealthy_tested_ids))\
-                .subquery()
-
-            crash_recordings = database_session.query(
-                Submission.id,
-                Match.recording
-            ).join(Submission.results)\
-                .join(Result.match)\
-                .join(
-                crash_matches,
-                and_(
-                    Submission.id == crash_matches.c.id,
-                    Match.id == crash_matches.c.match_id
-                )
-            ).all()
-
-            crash_recording_dict = {s_id: json.loads(recording) for s_id, recording in crash_recordings}
-
-            sub_dicts = [{**sub, "tested": sub["submission_id"] not in untested_ids,
-                          "healthy": sub["submission_id"] in healthy_ids,
-                          "crash_recording": crash_recording_dict.get(sub["submission_id"], {})}
-                         for sub in sub_dicts]
+        sub_dicts = [{**sub, "tested": sub["submission_id"] not in untested_ids,
+                      "healthy": sub["submission_id"] in healthy_ids,
+                      "crash_recording": crash_recording_dict.get(sub["submission_id"], {})}
+                     for sub in sub_dicts]
 
     return sub_dicts
 
 
-def create_submission(user_id: int, url: str) -> int:
-    files_hash = repo.download_repository(user_id, url)
+def create_submission(db_session, user: User, url: str) -> int:
+    files_hash = repo.download_repository(user.id, url)
 
-    with cuwais.database.create_session() as database_session:
-        now = datetime.now(tz=timezone.utc)
-        submission = Submission(user_id=user_id, submission_date=now, url=url, active=True, files_hash=files_hash)
-        database_session.add(submission)
-        database_session.commit()
+    now = datetime.now(tz=timezone.utc)
+    submission = Submission(user_id=user.id, submission_date=now, url=url, active=True, files_hash=files_hash)
+    db_session.add(submission)
 
-        return submission.id
+    return submission.id
 
 
-def get_current_submission(user_id) -> Optional[Submission]:
-    with cuwais.database.create_session() as database_session:
-        sub_date = database_session.query(
-            func.max(Submission.submission_date).label('maxdate')
-        ).join(Submission.results)\
-            .group_by(Submission.user_id) \
-            .filter(Submission.user_id == user_id, Submission.active == True, Result.healthy == True) \
-            .first()
+def get_current_submission(db_session, user) -> Optional[Submission]:
+    user_id = user.id
+    sub_date = db_session.query(
+        func.max(Submission.submission_date).label('maxdate')
+    ).join(Submission.results)\
+        .group_by(Submission.user_id) \
+        .filter(Submission.user_id == user_id, Submission.active == True, Result.healthy == True) \
+        .first()
 
-        if sub_date is None:
-            return None
+    if sub_date is None:
+        return None
 
-        sub_date = sub_date[0]
+    sub_date = sub_date[0]
 
-        submission = database_session.query(
-            Submission
-        ).filter(Submission.user_id == user_id) \
-            .filter(Submission.submission_date == sub_date) \
-            .first()
+    submission = db_session.query(
+        Submission
+    ).filter(Submission.user_id == user_id) \
+        .filter(Submission.submission_date == sub_date) \
+        .first()
 
     return submission
 
 
-def submission_is_owned_by_user(submission_id: int, user_id: int):
-    with cuwais.database.create_session() as database_session:
-        res = database_session.query(Submission).get(submission_id)
+def submission_is_owned_by_user(db_session, submission_id: int, user_id: int):
+    res = db_session.query(Submission).get(submission_id)
 
     if res is None:
         return False
@@ -280,31 +251,28 @@ def submission_is_owned_by_user(submission_id: int, user_id: int):
     return res.user_id == user_id
 
 
-def set_submission_enabled(submission_id: int, enabled: bool):
-    with cuwais.database.create_session() as database_session:
-        res = database_session.query(Submission).get(submission_id)
+def set_submission_enabled(db_session, submission_id: int, enabled: bool):
+    res = db_session.query(Submission).get(submission_id)
 
-        if res is None:
-            return
+    if res is None:
+        return
 
-        res.active = enabled
-
-        database_session.commit()
+    res.active = enabled
 
 
 @cached(ttl=300)
 def get_submission_summary_data(submission_id: int):
-    with cuwais.database.create_session() as database_session:
+    with cuwais.database.create_session() as db_session:
         vs = {}
         for outcome in Outcome:
-            c = database_session.query(
+            c = db_session.query(
                 func.count(Result.id)
             ).join(Submission.results)\
                 .group_by(Submission.id)\
                 .filter(Submission.id == submission_id, Result.outcome == outcome.value)\
                 .first()
 
-            ch = database_session.query(
+            ch = db_session.query(
                 func.count(Result.id)
             ).join(Submission.results)\
                 .group_by(Submission.id)\
@@ -323,26 +291,21 @@ def get_submission_summary_data(submission_id: int):
             "draws_healthy": vs[Outcome.Draw]["count_healthy"]}
 
 
-def get_all_bot_submissions() -> List[Tuple[User, Submission]]:
-    with cuwais.database.create_session() as database_session:
-        return database_session.query(User, Submission).filter(User.is_bot == True).join(User.submissions).all()
+def get_all_bot_submissions(db_session) -> List[Tuple[User, Submission]]:
+    return db_session.query(User, Submission).filter(User.is_bot == True).join(User.submissions).all()
 
 
-def create_bot(name):
-    with cuwais.database.create_session() as database_session:
-        bot = User(display_name=name, is_bot=True)
-        database_session.add(bot)
-        database_session.commit()
+def create_bot(db_session, name):
+    bot = User(display_name=name, is_bot=True)
+    db_session.add(bot)
 
-        return bot.id
+    return bot.id
 
 
-def delete_bot(bot_id):
-    with cuwais.database.create_session() as database_session:
-        database_session.query(Match).join(Match.results).join(Result.submission)\
-                                                               .filter(Submission.user_id == bot_id).delete()
-        database_session.query(Result).join(Result.submission).filter(Submission.user_id == bot_id).delete()
-        database_session.query(Submission).filter(Submission.user_id == bot_id).delete()
-        bot = database_session.query(User).get(bot_id)
-        database_session.delete(bot)
-        database_session.commit()
+def delete_bot(db_session, bot_id):
+    db_session.query(Match).join(Match.results).join(Result.submission)\
+                                                           .filter(Submission.user_id == bot_id).delete()
+    db_session.query(Result).join(Result.submission).filter(Submission.user_id == bot_id).delete()
+    db_session.query(Submission).filter(Submission.user_id == bot_id).delete()
+    bot = db_session.query(User).get(bot_id)
+    db_session.delete(bot)

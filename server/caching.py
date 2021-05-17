@@ -3,6 +3,7 @@ import pickle
 import time
 from threading import Lock
 
+import cuwais.database
 import redis
 
 redis_connection = redis.Redis(host='redis', port=6379)
@@ -63,9 +64,6 @@ def cached(ttl=5*60):
 
                 # Return
                 return value
-            except pickle.UnpicklingError:
-                redis_connection.delete(id_str)
-                return f(*args, **kwargs)  # Calculate just this once
             finally:
                 mutex.release()
         return decorated
