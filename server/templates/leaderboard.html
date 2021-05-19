@@ -10,37 +10,43 @@
     </div>
 
     {% macro leaderboard_entry(position, name, is_real_name, nickname, wins, losses, draws, score, is_header, is_you, is_bot) %}
-    <div class="p-1 px-md-3" id="leaderboard-entry-{{- position }}">
-        <div class="px-lg-5 d-flex justify-content-center">
-            <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission
+        <div class="p-1 px-md-3 text-nowrap" id="leaderboard-entry-{{- position }}">
+            <div class="px-lg-5 d-flex justify-content-center">
+                <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission
             {% if is_header %} border-bottom fw-bold {% elif is_you %} leaderboard-user-submission
             {% elif is_bot %} leaderboard-bot-submission {% else %} leaderboard-other-submission {% endif %}">
-                <div class="leaderboard-position">
-                    {{ position }}
-                </div>
-                <div class="leaderboard-name">
-                    {{ name }}
-                    {% if is_real_name %}
-                    <a class="nickname-text">({{ nickname }})</a>
-                    {% endif %}
-                </div>
-                <div class="leaderboard-wins d-none d-md-block">
-                    {{ wins }}
-                </div>
-                <div class="leaderboard-losses d-none d-md-block">
-                    {{ losses }}
-                </div>
-                <div class="leaderboard-draws d-none d-md-block">
-                    {{ draws }}
-                </div>
-                <div class="leaderboard-spacer d-none d-lg-block">
-                </div>
-                <div class="leaderboard-score">
-                    {{ score }}
+                    <div class="leaderboard-position">
+                        {{ position }}
+                    </div>
+                    <div class="leaderboard-name flex-column">
+                        <div class="row">
+                            <div class="p-0 col-auto">
+                                {{ name }}
+                            </div>
+                            {% if is_real_name %}
+                                <div class="col-6 d-none d-lg-block nickname-text">
+                                    ({{ nickname }})
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="leaderboard-wins d-none d-md-block">
+                        {{ wins }}
+                    </div>
+                    <div class="leaderboard-losses d-none d-md-block">
+                        {{ losses }}
+                    </div>
+                    <div class="leaderboard-draws d-none d-md-block">
+                        {{ draws }}
+                    </div>
+                    <div class="leaderboard-spacer d-none d-lg-block">
+                    </div>
+                    <div class="leaderboard-score">
+                        {{ score }}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     {% endmacro %}
     {% macro all_leaderboard(items) %}
         {{ leaderboard_entry("Position", "Name", False, "", "Wins", "Losses", "Draws", "Score", True, False, False) }}

@@ -46,7 +46,6 @@ body {
 }
 
 .nickname-text {
-  margin-left: 0.5rem;
   color: var(--gray);
 }
 
@@ -76,7 +75,7 @@ body {
   text-align: center;
 }
 .leaderboard-spacer {
-  width: 60px;
+  width: 30px;
 }
 .leaderboard-score {
   width: 100px;
