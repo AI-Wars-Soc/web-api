@@ -9,7 +9,7 @@
         </p>
     </div>
 
-    {% macro leaderboard_entry(position, name, wins, losses, draws, score, is_header, is_you, is_bot) %}
+    {% macro leaderboard_entry(position, name, is_real_name, nickname, wins, losses, draws, score, is_header, is_you, is_bot) %}
     <div class="p-1 px-md-3" id="leaderboard-entry-{{- position }}">
         <div class="px-lg-5 d-flex justify-content-center">
             <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission
@@ -20,6 +20,9 @@
                 </div>
                 <div class="leaderboard-name">
                     {{ name }}
+                    {% if is_real_name %}
+                    <a class="nickname-text">({{ nickname }})</a>
+                    {% endif %}
                 </div>
                 <div class="leaderboard-wins d-none d-md-block">
                     {{ wins }}
@@ -40,9 +43,9 @@
     </div>
     {% endmacro %}
     {% macro all_leaderboard(items) %}
-        {{ leaderboard_entry("Position", "Name", "Wins", "Losses", "Draws", "Score", True, False, False) }}
+        {{ leaderboard_entry("Position", "Name", False, "", "Wins", "Losses", "Draws", "Score", True, False, False) }}
         {% for item in items %}
-            {{ leaderboard_entry(loop.index, item.user.display_name,
+            {{ leaderboard_entry(loop.index, item.user.display_name, item.user.display_real_name, item.user.nickname,
             human_format(item.outcomes.wins), human_format(item.outcomes.losses), human_format(item.outcomes.draws),
             item.score_text, False, item.is_you, item.user.is_bot) }}
         {% endfor %}

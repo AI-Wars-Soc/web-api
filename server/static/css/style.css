@@ -45,6 +45,11 @@ body {
   opacity: 0.5;
 }
 
+.nickname-text {
+  margin-left: 0.5rem;
+  color: var(--gray);
+}
+
 #leaderboard {
 
 }

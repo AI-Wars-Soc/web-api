@@ -159,6 +159,7 @@ app.jinja_env.globals['reason_crash'] = reason_crash
 
 
 @app.route('/')
+@session_bound
 def index(db_session):
     user = data.get_user(db_session)
     if user is not None:

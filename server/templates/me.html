@@ -1,53 +1,58 @@
 {% extends "base.html" %}
 {% block content %}
-    <div class="d-flex justify-content-center justify-content-sm-start">
+    <div class="flex-column justify-content-center justify-content-sm-start">
         <h1>{{ user.real_name }}</h1>
-        <h3>{{ user.nickname }}</h3>
+        <h3 class="nickname-text">({{ user.nickname }})</h3>
     </div>
     <div class="px-3 d-none d-sm-block">
         <p class="lead">
             This is your settings page
         </p>
     </div>
-    <div class="d-flex justify-content-center justify-content-sm-start px-3 m-lg-3">
-        <div class="custom-control custom-switch">
-            <script>
-                function changeNameVisibility(v) {
-                    const set_visible = v.checked;
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', '/api/set_name_visible');
-                    xhr.setRequestHeader('Content-Type', 'application/json');
-                    xhr.onerror = function () {
-                        console.log(xhr.responseText);
-                        v.checked = !set_visible;
-                    };
-                    xhr.send(JSON.stringify({
-                        visible: set_visible,
-                    }));
-                }
-            </script>
-            <input type="checkbox" class="custom-control-input" id="realNameSwitch"
-                   onchange="changeNameVisibility(this)" {% if user.display_real_name %}checked{% endif %}>
-            <label class="custom-control-label" for="realNameSwitch">Display your real name on the leaderboard</label>
-        </div>
-        <div class="custom-control custom-switch">
-            <script>
-                function changeTheme(v) {
-                    if (v.checked) {
-                        Style.setDark();
-                    } else {
-                        Style.setLight();
+    <div class="flex-column justify-content-center justify-content-sm-start px-3 m-lg-3">
+        <div class="flex-row">
+            <div class="custom-control custom-switch">
+                <script>
+                    function changeNameVisibility(v) {
+                        const set_visible = v.checked;
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/api/set_name_visible');
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.onerror = function () {
+                            console.log(xhr.responseText);
+                            v.checked = !set_visible;
+                        };
+                        xhr.send(JSON.stringify({
+                            visible: set_visible,
+                        }));
                     }
-                }
+                </script>
+                <input type="checkbox" class="custom-control-input" id="realNameSwitch"
+                       onchange="changeNameVisibility(this)" {% if user.display_real_name %}checked{% endif %}>
+                <label class="custom-control-label" for="realNameSwitch">Display your real name on the
+                    leaderboard</label>
+            </div>
+        </div>
+        <div class="flex-row">
+            <div class="custom-control custom-switch">
+                <script>
+                    function changeTheme(v) {
+                        if (v.checked) {
+                            Style.setDark();
+                        } else {
+                            Style.setLight();
+                        }
+                    }
 
-                window.onload = function () {
-                    const v = $("#darkModeSwitch");
-                    v.prop('checked', Style.getTheme() !== "light");
-                }
-            </script>
-            <input type="checkbox" class="custom-control-input" id="darkModeSwitch"
-                   onchange="changeTheme(this)">
-            <label class="custom-control-label" for="darkModeSwitch">Dark Mode</label>
+                    window.onload = function () {
+                        const v = $("#darkModeSwitch");
+                        v.prop('checked', Style.getTheme() !== "light");
+                    }
+                </script>
+                <input type="checkbox" class="custom-control-input" id="darkModeSwitch"
+                       onchange="changeTheme(this)">
+                <label class="custom-control-label" for="darkModeSwitch">Dark Mode</label>
+            </div>
         </div>
     </div>
 {% endblock %}
