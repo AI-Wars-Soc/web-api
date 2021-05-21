@@ -61,6 +61,13 @@ def set_user_name_visible(db_session, user: User, visible: bool):
     user.display_real_name = visible
 
 
+def make_scoreboard_entry(user, score: Optional[int], init: int, outcomes: dict):
+    return {"user_id": user.id,
+            "score": 0 if score is None else (init + score),
+            "score_text": ("" if score is None else "%.0f" % (init + score)),
+            "outcomes": outcomes}
+
+
 @cached(ttl=300)
 def get_scoreboard_data():
     with cuwais.database.create_session() as db_session:
@@ -79,12 +86,12 @@ def get_scoreboard_data():
             user_outcome_counts = db_session.query(
                 User.id,
                 func.count(Result.id)
-            ).join(User.submissions)\
-                .join(Submission.results)\
-                .join(Result.match)\
-                .filter(Result.outcome == int(outcome.value), Result.healthy == True)\
-                .filter(Match.match_date > since)\
-                .group_by(User.id)\
+            ).join(User.submissions) \
+                .join(Submission.results) \
+                .join(Result.match) \
+                .filter(Result.outcome == int(outcome.value), Result.healthy == True) \
+                .filter(Match.match_date > since) \
+                .group_by(User.id) \
                 .all()
 
             counts[outcome] = user_outcome_counts
@@ -93,12 +100,10 @@ def get_scoreboard_data():
     counts_by_outcome = {o: {user_id: count for user_id, count in counts[o]} for o in Outcome}
 
     init = int(config_file.get("initial_score"))
-    scores = [{"user_id": user.id,
-               "score": 0 if score is None else (init + score),
-               "score_text": ("" if score is None else "%.0f" % (init + score)),
-               "outcomes": {"wins": counts_by_outcome[Outcome.Win].get(user.id, 0),
-                            "losses": counts_by_outcome[Outcome.Loss].get(user.id, 0),
-                            "draws": counts_by_outcome[Outcome.Draw].get(user.id, 0)}}
+    outcomes = {user.id: {"wins": counts_by_outcome[Outcome.Win].get(user.id, 0),
+                          "losses": counts_by_outcome[Outcome.Loss].get(user.id, 0),
+                          "draws": counts_by_outcome[Outcome.Draw].get(user.id, 0)} for [user, _] in user_scores}
+    scores = [make_scoreboard_entry(user, score, init, outcomes[user.id])
               for [user, score] in reversed(user_scores)]
 
     scores.sort(key=lambda e: e["score"], reverse=True)
@@ -110,16 +115,28 @@ def get_scoreboard(db_session, querying_user) -> List[Dict[str, Any]]:
     scores = get_scoreboard_data()
 
     new_scores = []
+    found_you = False
     for vs in scores:
         user = db_session.query(User).get(vs["user_id"])
 
         if user is None:
             continue
 
+        is_you = querying_user.id == vs["user_id"]
+        if is_you:
+            found_you = True
+
         new_scores.append({
             "user": user.to_public_dict(),
-            "is_you": querying_user.id == vs["user_id"],
+            "is_you": is_you,
             **vs
+        })
+
+    if not found_you:
+        new_scores.append({
+            "user": querying_user.to_public_dict(),
+            "is_you": True,
+            **make_scoreboard_entry(querying_user, None, 0, {"wins": 0, "losses": 0, "draws": 0})
         })
 
     return new_scores
@@ -132,11 +149,11 @@ def get_leaderboard_graph_data():
             User,
             func.date_trunc('hour', Match.match_date),
             func.sum(Result.points_delta).label("delta_score")
-        ).join(User.submissions)\
-            .join(Submission.results)\
+        ).join(User.submissions) \
+            .join(Submission.results) \
             .join(Result.match) \
             .group_by(func.date_trunc('hour', Match.match_date),
-                      User.id)\
+                      User.id) \
             .all()
 
     deltas = []
@@ -194,17 +211,17 @@ def get_all_user_submissions(db_session, user: User, private=False) -> List[dict
         crash_matches = db_session.query(
             Submission.id,
             func.max(Match.id).label("match_id")
-        ).join(Submission.results)\
-            .join(Result.match)\
-            .group_by(Submission.id)\
-            .filter(Submission.id.in_(unhealthy_tested_ids))\
+        ).join(Submission.results) \
+            .join(Result.match) \
+            .group_by(Submission.id) \
+            .filter(Submission.id.in_(unhealthy_tested_ids)) \
             .subquery()
 
         crash_recordings = db_session.query(
             Submission.id,
             Match.recording
-        ).join(Submission.results)\
-            .join(Result.match)\
+        ).join(Submission.results) \
+            .join(Result.match) \
             .join(
             crash_matches,
             and_(
@@ -237,7 +254,7 @@ def get_current_submission(db_session, user) -> Optional[Submission]:
     user_id = user.id
     sub_date = db_session.query(
         func.max(Submission.submission_date).label('maxdate')
-    ).join(Submission.results)\
+    ).join(Submission.results) \
         .group_by(Submission.user_id) \
         .filter(Submission.user_id == user_id, Submission.active == True, Result.healthy == True) \
         .first()
@@ -281,18 +298,18 @@ def get_submission_summary_data(submission_id: int):
         for outcome in Outcome:
             c = db_session.query(
                 func.count(Result.id)
-            ).join(Submission.results)\
-                .group_by(Submission.id)\
-                .filter(Submission.id == submission_id, Result.outcome == outcome.value)\
+            ).join(Submission.results) \
+                .group_by(Submission.id) \
+                .filter(Submission.id == submission_id, Result.outcome == outcome.value) \
                 .first()
 
             ch = db_session.query(
                 func.count(Result.id)
-            ).join(Submission.results)\
-                .group_by(Submission.id)\
+            ).join(Submission.results) \
+                .group_by(Submission.id) \
                 .filter(Submission.id == submission_id,
                         Result.outcome == outcome.value,
-                        Result.healthy == True)\
+                        Result.healthy == True) \
                 .first()
 
             c = 0 if c is None else c[0]
@@ -317,18 +334,18 @@ def create_bot(db_session, name):
 
 
 def delete_bot(db_session, bot_id):
-    db_session.query(Match)\
-        .filter(Result.match_id == Match.id, Result.submission_id == Submission.id, Submission.user_id == bot_id)\
+    db_session.query(Match) \
+        .filter(Result.match_id == Match.id, Result.submission_id == Submission.id, Submission.user_id == bot_id) \
         .delete(synchronize_session='fetch')
     bot = db_session.query(User).get(bot_id)
     delete_user(db_session, bot)
 
 
 def delete_user(db_session, user):
-    db_session.query(Result)\
-        .filter(Result.submission_id == Submission.id, Submission.user_id == user.id)\
+    db_session.query(Result) \
+        .filter(Result.submission_id == Submission.id, Submission.user_id == user.id) \
         .delete(synchronize_session='fetch')
-    db_session.query(Submission)\
-        .filter(Submission.user_id == user.id)\
+    db_session.query(Submission) \
+        .filter(Submission.user_id == user.id) \
         .delete(synchronize_session='fetch')
     db_session.delete(user)

@@ -181,12 +181,12 @@ class Submissions {
                         legend: {
                             position: 'top',
                             labels: {
-                                 filter(legendItem, data) {
-                                     if (legendItem.index >= 9) {
-                                         return !center_hidden;
-                                     }
-                                     return (legendItem.index % 3) == 0;
-                                 },
+                                filter(legendItem, data) {
+                                    if (legendItem.index >= 9) {
+                                        return !center_hidden;
+                                    }
+                                    return (legendItem.index % 3) == 0;
+                                },
                             },
                             onClick(e, legendItem, legend) {
                                 // Stop legend selection and instead toggle crashed
@@ -218,9 +218,12 @@ class Submissions {
             submission_id: id
         }));
     }
+
+    registerElements() {
+        $('#submission-form').submit(Submissions.onSubmit);
+        $('#bot-form').submit(Submissions.onBotSubmit);
+        Array.from($(".submission-collapse")).forEach(s => submissions.registerCollapse(s));
+    }
 }
 
 const submissions = new Submissions();
-$('#submission-form').submit(Submissions.onSubmit);
-$('#bot-form').submit(Submissions.onBotSubmit);
-Array.from($(".submission-collapse")).forEach(s => submissions.registerCollapse(s));
