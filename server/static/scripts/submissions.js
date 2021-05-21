@@ -36,7 +36,6 @@ class Submissions {
     static onSubmit(e) {
         e.preventDefault();
         const url = repo_box.val();
-        repo_box.val("");
 
         submit_spinner.show();
 

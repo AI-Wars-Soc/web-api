@@ -1,0 +1,26 @@
+db_connection: "postgresql://debug:debug@database"
+debug: false
+profile: false
+soc_name: "cuwais"
+google_client_id: ""
+allowed_email_domain: ~
+max_repo_size_bytes: 10000000
+initial_score: 1000
+front_end:
+  server_name: "lvh.me"
+localisation:
+  crash_reasons:
+    illegal-move: "This means your AI returned a move which was not allowed"
+    illegal-board: "This means there was a mismatch between the host and client boards. This means either you've intentionally tried to break something, or there's a bug"
+    broken-entry-point: "This means your repository did not have the right method to call! Make sure you have all of the same file and method names as the base repository"
+    unknown-result-type: "This is definitely a bug. Please let someone know"
+    game-unfinished: "This means your AI stopped playing the game before the game was done. This usually means your AI somehow crashed, but probably not by timing out"
+    timeout: "This means your AI ran out of time. Try making moves faster!"
+    process-killed: "This means your AI used up too much of the system's resources. Usually this means you used too much memory"
+  default_crash_reason: "I'm not sure what this means, so is probably a bug. Sorry!"
+  git_errors:
+    invalid-url: "Invalid GIT URL"
+    already-submitted: "GIT repo already submitted"
+    too-large: "GIT repo is too large!"
+    clone-fail: "Failed to clone! :("
+  submission_access_error: "You do not own that submission!"

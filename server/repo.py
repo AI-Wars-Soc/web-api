@@ -4,15 +4,17 @@ import re
 from io import StringIO
 from pathlib import Path
 from shutil import rmtree
+from threading import Lock
 
 import cuwais.common
 import sh as sh
+from cuwais.config import config_file
+
+_cloning_dirs_mutex = Lock()
 
 
 GIT_BASE_DIR = '/repositories/'
 GIT_HASH_RE = re.compile(r"^(?P<hash>[0-9a-f]{40})\s*HEAD$", re.MULTILINE)
-
-MAXIMUM_REPO_SIZE = int(os.getenv("MAX_REPO_SIZE_BYTES"))
 
 
 class InvalidGitURL(RuntimeError):
@@ -61,17 +63,23 @@ def download_repository(user_id: int, url: str) -> str:
     archive_dir = Path(GIT_BASE_DIR, files_hash + ".tar")
     archive_dir_str = str(archive_dir.absolute())
 
-    if clone_dir.exists():
-        raise AlreadyCloningException(url)
+    _cloning_dirs_mutex.acquire()
+    try:
+        if clone_dir.exists():
+            raise AlreadyCloningException(url)
 
-    if archive_dir.exists():
-        raise AlreadyExistsException(url)
+        if archive_dir.exists():
+            raise AlreadyExistsException(url)
+
+        os.mkdir(clone_dir)
+    finally:
+        _cloning_dirs_mutex.release()
 
     try:
         sh.git.clone(url, clone_dir_str, "--depth=1")
 
         size = get_dir_size_bytes(clone_dir_str)
-        if size > MAXIMUM_REPO_SIZE:
+        if size > int(config_file.get("max_repo_size_bytes")):
             # TODO: Cache too big entries in redis
             raise RepoTooBigException(url)
 

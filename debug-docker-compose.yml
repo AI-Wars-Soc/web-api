@@ -9,16 +9,10 @@ services:
       - "./server:/home/web_user/server"
       - "./tmp/repositories:/repositories"
       - "./tmp/database:/database"
+      - "./debug_config.yml:/home/web_user/server/config.yml"
     networks:
       - database
       - redis
-    environment:
-      DEBUG: "True"
-      SERVER_NAME: "lvh.me"
-      CLIENT_ID: "389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com"
-      DATABASE_CONNECTION: "sqlite+pysqlite:////database/database.sqlite"
-      INITIAL_SCORE: 1000
-      MAX_REPO_SIZE_BYTES: 10000000
     secrets:
       - secret_key
   redis:

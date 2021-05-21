@@ -5,6 +5,7 @@ from typing import Optional, List, Tuple, Dict, Any
 
 import cuwais
 from cuwais.common import Outcome
+from cuwais.config import config_file
 from cuwais.database import User, Submission, Result, Match
 from flask import session
 from sqlalchemy import select, func, desc, and_
@@ -91,7 +92,7 @@ def get_scoreboard_data():
     # Convert outcomes to wins/losses/draws
     counts_by_outcome = {o: {user_id: count for user_id, count in counts[o]} for o in Outcome}
 
-    init = int(os.getenv("INITIAL_SCORE"))
+    init = int(config_file.get("initial_score"))
     scores = [{"user_id": user.id,
                "score": 0 if score is None else (init + score),
                "score_text": ("" if score is None else "%.0f" % (init + score)),
@@ -142,7 +143,7 @@ def get_leaderboard_graph(db_session, user_id):
     deltas = get_leaderboard_graph_data()
 
     users = {}
-    init = int(os.getenv("INITIAL_SCORE"))
+    init = int(config_file.get("initial_score"))
     for delta in deltas:
         other_user_id = delta['user_id']
         user = db_session.query(User).get(other_user_id)

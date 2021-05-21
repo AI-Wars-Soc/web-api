@@ -91,11 +91,13 @@
     <!-- Google login -->
     <script src="https://apis.google.com/js/platform.js?onload=Login.googleInit" async defer></script>
     <meta name="google-signin-client_id"
-          content="389788965612-qh4j3n7fh14nfjbg7u1tmlb59mudmobj.apps.googleusercontent.com">
-    <meta name="google-signin-hosted_domain" content="cam.ac.uk">
+          content="{{ config_file.google_client_id }}">
+        {% if config_file.allowed_email_domain is not none %}
+        <meta name="google-signin-hosted_domain" content="{{ config_file.allowed_email_domain }}">
+        {% endif %}
     {% endif %}
 
-    <title>CUWAIS</title>
+    <title>{{ config_file.soc_name.upper() }} - {{ page_name.replace("_", " ").title() }}</title>
 </head>
 <body>
 <!-- Navbar (top) -->
@@ -128,7 +130,7 @@
         </div>
         <div class="mx-auto order-0">
             {% block navbar_mid %}
-                <a class="navbar-brand mx-auto" href="/">CUWAIS</a>
+                <a class="navbar-brand mx-auto" href="/">{{ config_file.soc_name.upper() }}</a>
             {% endblock %}
         </div>
         <div class="collapse navbar-collapse w-100 order-3 dual-collapse2">
