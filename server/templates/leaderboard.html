@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% block imports %}
+    {{ import('scripts/leaderboard.js') }}
+{% endblock %}
 {% block content %}
     <div class="d-flex justify-content-center justify-content-sm-start">
         <h1>Leaderboard</h1>
@@ -65,5 +68,7 @@
         </div>
     </div>
 
-    {{ import('scripts/leaderboard.js') }}
+    <script>
+        leaderboard.fade_in(() => leaderboard.make_graph());
+    </script>
 {% endblock %}

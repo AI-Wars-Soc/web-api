@@ -106,16 +106,23 @@ def get_scoreboard_data():
     return scores
 
 
-def get_scoreboard(db_session, user) -> List[Dict[str, Any]]:
+def get_scoreboard(db_session, querying_user) -> List[Dict[str, Any]]:
     scores = get_scoreboard_data()
 
-    scores = [{
-        "user": db_session.query(User).get(vs["user_id"]).to_public_dict(),
-        "is_you": user.id == vs["user_id"],
-        **vs
-    } for vs in scores]
+    new_scores = []
+    for vs in scores:
+        user = db_session.query(User).get(vs["user_id"])
 
-    return scores
+        if user is None:
+            continue
+
+        new_scores.append({
+            "user": user.to_public_dict(),
+            "is_you": querying_user.id == vs["user_id"],
+            **vs
+        })
+
+    return new_scores
 
 
 @cached(ttl=300)
@@ -139,7 +146,7 @@ def get_leaderboard_graph_data():
     return deltas
 
 
-def get_leaderboard_graph(db_session, user_id):
+def get_leaderboard_graph(db_session, querying_user_id):
     deltas = get_leaderboard_graph_data()
 
     users = {}
@@ -147,8 +154,14 @@ def get_leaderboard_graph(db_session, user_id):
     for delta in deltas:
         other_user_id = delta['user_id']
         user = db_session.query(User).get(other_user_id)
+
+        # If user has been deleted since the cache
+        if user is None:
+            del deltas[other_user_id]
+            continue
+
         users[other_user_id] = user.to_public_dict()
-        users[other_user_id]["is_you"] = other_user_id == user_id
+        users[other_user_id]["is_you"] = other_user_id == querying_user_id
 
     return {"users": users, "deltas": deltas, "initial_score": init}
 
@@ -304,9 +317,18 @@ def create_bot(db_session, name):
 
 
 def delete_bot(db_session, bot_id):
-    db_session.query(Match).join(Match.results).join(Result.submission)\
-                                                           .filter(Submission.user_id == bot_id).delete()
-    db_session.query(Result).join(Result.submission).filter(Submission.user_id == bot_id).delete()
-    db_session.query(Submission).filter(Submission.user_id == bot_id).delete()
+    db_session.query(Match)\
+        .filter(Result.match_id == Match.id, Result.submission_id == Submission.id, Submission.user_id == bot_id)\
+        .delete(synchronize_session='fetch')
     bot = db_session.query(User).get(bot_id)
-    db_session.delete(bot)
+    delete_user(db_session, bot)
+
+
+def delete_user(db_session, user):
+    db_session.query(Result)\
+        .filter(Result.submission_id == Submission.id, Submission.user_id == user.id)\
+        .delete(synchronize_session='fetch')
+    db_session.query(Submission)\
+        .filter(Submission.user_id == user.id)\
+        .delete(synchronize_session='fetch')
+    db_session.delete(user)

@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% block imports %}
+    {{ import('scripts/logout.js') }}
+{% endblock %}
 {% block content %}
     <h2>
         Logging you out
@@ -10,8 +13,6 @@
     </div>
 {% endblock %}
 {% block modal %}
-    {{ import('scripts/logout.js') }}
-
     <script>
         function onGoogleSignIn(e) {
             return Logout.onGoogleSignIn(e);

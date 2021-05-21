@@ -219,5 +219,3 @@ class Leaderboard {
 }
 
 leaderboard = new Leaderboard(1000, 250);
-
-leaderboard.fade_in(() => leaderboard.make_graph());

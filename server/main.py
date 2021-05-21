@@ -324,6 +324,17 @@ def remove_bot(user, db_session):
                     mimetype='application/json')
 
 
+@app.route('/api/remove_user', methods=['POST'])
+@logged_in_session_bound
+def remove_user(user, db_session):
+    data.delete_user(db_session, user)
+
+    encoded = json.dumps({"status": "success"})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
 @app.route('/api/set_submission_active', methods=['POST'])
 @logged_in_session_bound
 def set_submission_active(user, db_session):

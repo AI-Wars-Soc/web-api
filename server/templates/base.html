@@ -97,6 +97,8 @@
         {% endif %}
     {% endif %}
 
+    {% block imports %}{% endblock %}
+
     <title>{{ config_file.soc_name.upper() }} - {{ page_name.replace("_", " ").title() }}</title>
 </head>
 <body>
@@ -164,8 +166,8 @@
                         <div class="d-grid gap-3">
                             <p>
                                 By logging in you agree to the rules on the about page,
-                                as well as allowing us to display your surname to other
-                                logged in Cambridge students on the Leaderboard
+                                as well as allowing us to store your name and and email address.
+                                You can delete your account at any time.
                             </p>
                             <div class="d-flex justify-content-center">
                                 <script>
@@ -184,9 +186,7 @@
                             <div id="login-error-msg"
                                  class="p-2 bg-danger text-white text-center border border-danger rounded"
                                  style="display:none">
-                                Something went wrong. Please ensure you are using your university email address and try
-                                again
-                                (or let Joe know)
+                                Something went wrong. Please try again or let someone know.
                             </div>
                         </div>
                     </div>
