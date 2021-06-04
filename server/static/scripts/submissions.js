@@ -1,14 +1,9 @@
-const submission_error_box = $("#submission-error-msg");
-const repo_box = $("#repo");
-const bot_name_box = $("#bot-name");
-const submit_spinner = $("#submit-spinner")
-
 class Submissions {
     constructor() {
         this.madeGraphs = new Set();
     }
 
-    static setSubmissionEnabledSwitch(checkbox, submission_id) {
+    setSubmissionEnabledSwitch(checkbox, submission_id) {
         const v = checkbox.checked;
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/set_submission_active');
@@ -19,8 +14,8 @@ class Submissions {
         xhr.onerror = function () {
             console.log(xhr.responseText);
             const response = JSON.parse(xhr.responseText)
-            submission_error_box.text(response.message);
-            submission_error_box.show();
+            this.submission_error_box.text(response.message);
+            this.submission_error_box.show();
             Submissions.uncheck(checkbox, !v);
         };
         xhr.send(JSON.stringify({
@@ -33,11 +28,12 @@ class Submissions {
         checkbox.checked = unchecked;
     }
 
-    static onSubmit(e) {
+    onSubmit(e) {
         e.preventDefault();
-        const url = repo_box.val();
+        const url = this.repo_box.val();
 
-        submit_spinner.show();
+        this.submit_spinner.show();
+        const submission_error_box = this.submission_error_box;
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_submission');
@@ -62,10 +58,12 @@ class Submissions {
         }));
     }
 
-    static onBotSubmit(e) {
+    onBotSubmit(e) {
         e.preventDefault();
-        const url = repo_box.val();
-        const name = bot_name_box.val();
+        const url = this.repo_box.val();
+        const name = this.bot_name_box.val();
+        const submission_error_box = this.submission_error_box;
+        const repo_box = this.repo_box;
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_bot');
@@ -185,7 +183,7 @@ class Submissions {
                                     if (legendItem.index >= 9) {
                                         return !center_hidden;
                                     }
-                                    return (legendItem.index % 3) == 0;
+                                    return (legendItem.index % 3) === 0;
                                 },
                             },
                             onClick(e, legendItem, legend) {
@@ -220,8 +218,13 @@ class Submissions {
     }
 
     registerElements() {
-        $('#submission-form').submit(Submissions.onSubmit);
-        $('#bot-form').submit(Submissions.onBotSubmit);
+        this.submission_error_box = $("#submission-error-msg");
+        this.repo_box = $("#repo");
+        this.bot_name_box = $("#bot-name");
+        this.submit_spinner = $("#submit-spinner")
+
+        $('#submission-form').submit(e => submissions.onSubmit(e));
+        $('#bot-form').submit(e => submissions.onBotSubmit(e));
         Array.from($(".submission-collapse")).forEach(s => submissions.registerCollapse(s));
     }
 }

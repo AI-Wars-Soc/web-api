@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Any
 
@@ -8,7 +7,7 @@ from cuwais.common import Outcome
 from cuwais.config import config_file
 from cuwais.database import User, Submission, Result, Match
 from flask import session
-from sqlalchemy import select, func, desc, and_
+from sqlalchemy import select, func, and_
 
 from server import repo, nickname
 from server.caching import cached

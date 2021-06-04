@@ -250,6 +250,7 @@ def _make_api_failure(message):
 @logged_in_session_bound
 def add_submission(user, db_session):
     json_in = request.json
+    print(json_in, flush=True)
     url = json_in["url"]
     try:
         submission_id = data.create_submission(db_session, user, url)
