@@ -31,7 +31,7 @@ if app.config["DEBUG"]:
 
 app.config["SESSION_COOKIE_NAME"] = "session_id"
 app.config["SERVER_NAME"] = config_file.get("front_end.server_name")
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=1)
 app.config["SESSION_TYPE"] = 'redis'
 app.config["SESSION_REDIS"] = caching.redis_connection
 sess = Session(app)
@@ -280,9 +280,10 @@ def add_bot(user, db_session):
     json_in = request.json
     url = json_in["url"]
     bot_name = json_in["name"]
-    bot_id = data.create_bot(db_session, bot_name)
+    bot = data.create_bot(db_session, bot_name)
+    db_session.commit()  # TODO: Make this atomic
     try:
-        submission_id = data.create_submission(db_session, bot_id, url)
+        submission_id = data.create_submission(db_session, bot, url)
     except repo.InvalidGitURL:
         return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
     except repo.AlreadyExistsException:

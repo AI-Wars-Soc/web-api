@@ -11,6 +11,7 @@ front_end:
 localisation:
   crash_reasons:
     valid-game: "This means nothing went wrong. Your game should have completed normally"
+    exception: "This means your AI raised an exception while trying to create a move"
     illegal-move: "This means your AI returned a move which was not allowed"
     illegal-board: "This means there was a mismatch between the host and client boards. This means either you've intentionally tried to break something, or there's a bug"
     broken-entry-point: "This means your repository did not have the right method to call! Make sure you have all of the same file and method names as the base repository"

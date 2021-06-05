@@ -218,7 +218,9 @@ def get_all_user_submissions(db_session, user: User, private=False) -> List[dict
 
         crash_recordings = db_session.query(
             Submission.id,
-            Match.recording
+            Match.recording,
+            Result.result_code,
+            Result.prints
         ).join(Submission.results) \
             .join(Result.match) \
             .join(
@@ -229,11 +231,12 @@ def get_all_user_submissions(db_session, user: User, private=False) -> List[dict
             )
         ).all()
 
-        crash_recording_dict = {s_id: json.loads(recording) for s_id, recording in crash_recordings}
+        crash_dict = {s_id: {"recording": json.loads(recording), "result": result, "prints": prints}
+                      for s_id, recording, result, prints in crash_recordings}
 
         sub_dicts = [{**sub, "tested": sub["submission_id"] not in untested_ids,
                       "healthy": sub["submission_id"] in healthy_ids,
-                      "crash_recording": crash_recording_dict.get(sub["submission_id"], {})}
+                      "crash": crash_dict.get(sub["submission_id"], None)}
                      for sub in sub_dicts]
 
     return sub_dicts
@@ -325,11 +328,11 @@ def get_all_bot_submissions(db_session) -> List[Tuple[User, Submission]]:
     return db_session.query(User, Submission).filter(User.is_bot == True).join(User.submissions).all()
 
 
-def create_bot(db_session, name):
-    bot = User(display_name=name, is_bot=True)
+def create_bot(db_session, name) -> User:
+    bot = User(nickname=name, real_name=name, is_bot=True)
     db_session.add(bot)
 
-    return bot.id
+    return bot
 
 
 def delete_bot(db_session, bot_id):

@@ -65,21 +65,19 @@
                                     <div class="submission-crash-report p-1 px-3">
                                         <div>
                                             <b>Crash Reason:</b>
-                                            <p class="text-monospace">{{ item.crash_recording.outcome_txt.replace("-", " ").capitalize() -}}</p>
+                                            <p class="text-monospace">{{ item.crash.result.replace("-", " ").capitalize() -}}</p>
                                         </div>
                                         <p>
-                                            {{ reason_crash(item.crash_recording.outcome_txt) }}
+                                            {{ reason_crash(item.crash.result) }}
                                         </p>
                                         <div>
-                                        {% if item.crash_recording.player_prints[0]|length == 0 %}
+                                        {% if item.crash.prints|length == 0 %}
                                             Your AI did not print anything.
                                         {% else %}
                                             Your AI printed the following:
-                                            {% for player_print in item.crash_recording.player_prints[0] %}
                                             <div>
-                                                <p class="text-monospace">{{ player_print }}</p>
+                                                <p class="text-monospace">{{ item.crash.prints }}</p>
                                             </div>
-                                            {% endfor %}
                                         {% endif %}
                                         </div>
                                     </div>

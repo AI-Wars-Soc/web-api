@@ -31,27 +31,27 @@ class Submissions {
     onSubmit(e) {
         e.preventDefault();
         const url = this.repo_box.val();
+        const _this = this;
 
         this.submit_spinner.show();
-        const submission_error_box = this.submission_error_box;
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_submission');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
             if (xhr.status !== 200) {
-                Submissions.onSubmitFail(xhr.responseText);
+                _this.onSubmitFail(xhr.responseText);
                 return;
             }
             const response = JSON.parse(xhr.responseText)
             if (response.status === "resent") { // Ignore resent requests
                 return;
             }
-            submission_error_box.hide();
+            _this.submission_error_box.hide();
             window.location.reload();
         };
         xhr.onerror = function () {
-            Submissions.onSubmitFail(xhr.responseText);
+            _this.onSubmitFail(xhr.responseText);
         };
         xhr.send(JSON.stringify({
             url: url
@@ -60,54 +60,52 @@ class Submissions {
 
     onBotSubmit(e) {
         e.preventDefault();
-        const url = this.repo_box.val();
-        const name = this.bot_name_box.val();
-        const submission_error_box = this.submission_error_box;
-        const repo_box = this.repo_box;
+        const _this = this;
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_bot');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
             if (xhr.status !== 200) {
-                Submissions.onSubmitFail(xhr.responseText);
+                _this.onSubmitFail(xhr.responseText);
                 return;
             }
-            submission_error_box.hide();
-            repo_box.val("");
+            _this.submission_error_box.hide();
+            _this.repo_box.val("");
             window.location.reload();
         };
         xhr.onerror = function () {
-            Submissions.onSubmitFail(xhr.responseText);
+            _this.onSubmitFail(xhr.responseText);
         };
         xhr.send(JSON.stringify({
-            url: url,
-            name: name
+            url: this.repo_box.val(),
+            name: this.bot_name_box.val()
         }));
     }
 
-    static onSubmitFail(response_text) {
+    onSubmitFail(response_text) {
         console.log(response_text);
         const response = JSON.parse(response_text);
-        submission_error_box.text(response.message);
-        repo_box.effect("shake");
-        submission_error_box.show();
-        submit_spinner.hide();
+        this.submission_error_box.text(response.message);
+        this.repo_box.effect("shake");
+        this.submission_error_box.show();
+        this.submit_spinner.hide();
     }
 
-    static deleteBot(id) {
+    deleteBot(id) {
         const xhr = new XMLHttpRequest();
+        const _this = this;
         xhr.open('POST', '/api/remove_bot');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
             if (xhr.status !== 200) {
-                Submissions.onSubmitFail(xhr.responseText);
+                _this.onSubmitFail(xhr.responseText);
                 return;
             }
             window.location.reload();
         };
         xhr.onerror = function () {
-            Submissions.onSubmitFail(xhr.responseText);
+            _this.onSubmitFail(xhr.responseText);
         };
         xhr.send(JSON.stringify({
             id: id
@@ -116,10 +114,10 @@ class Submissions {
 
     registerCollapse(s) {
         s = $(s);
-        const t = this;
+        const _this = this;
         const id = s.data("submissionId");
         s.on('show.bs.collapse', function () {
-            t.makeGraph(id);
+            _this.makeGraph(id);
         });
     }
 
