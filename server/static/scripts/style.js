@@ -1,4 +1,5 @@
 const STYLE_COOKIE_NAME = 'CUWAIS_THEME';
+const STYLE_COOKIE_ARGS = { sameSite:'strict' };
 
 class Style {
     static bootswatchLight = $("#bootswatch-light");
@@ -19,14 +20,14 @@ class Style {
         Style.copyRef(Style.bootswatchLight, Style.bootswatchActive);
         Style.copyRef(Style.styleLight, Style.styleActive);
 
-        Cookies.set(STYLE_COOKIE_NAME, 'light');
+        Cookies.set(STYLE_COOKIE_NAME, 'light', STYLE_COOKIE_ARGS);
     }
 
     static setDark() {
         Style.copyRef(Style.bootswatchDark, Style.bootswatchActive);
         Style.copyRef(Style.styleDark, Style.styleActive);
 
-        Cookies.set(STYLE_COOKIE_NAME, 'dark');
+        Cookies.set(STYLE_COOKIE_NAME, 'dark', STYLE_COOKIE_ARGS);
     }
 
     static loadTheme() {

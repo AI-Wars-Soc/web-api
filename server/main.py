@@ -30,6 +30,8 @@ if app.config["DEBUG"]:
 
 
 app.config["SESSION_COOKIE_NAME"] = "session_id"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_COOKIE_SECURE"] = not app.config["DEBUG"]
 app.config["SERVER_NAME"] = config_file.get("front_end.server_name")
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=1)
 app.config["SESSION_TYPE"] = 'redis'

@@ -51,7 +51,7 @@
                                         <div class="custom-control custom-switch">
                                             <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- item.submission_id -}}"
                                                    {% if item.active %} checked {% endif %}
-                                                   onchange="Submissions.setSubmissionEnabledSwitch(this, {{- item.submission_id -}})">
+                                                   onchange="submissions.setSubmissionEnabledSwitch(this, {{- item.submission_id -}})">
                                             <label class="custom-control-label" for="enabledSwitch{{- item.submission_id -}}">{% if item.active %}Enabled{% else %}Disabled{% endif %}</label>
                                         </div>
                                     </div>

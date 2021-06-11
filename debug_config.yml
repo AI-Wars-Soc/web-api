@@ -1,7 +1,0 @@
-db_connection: "sqlite+pysqlite:////database/database.sqlite"
-debug: true
-profile: true
-soc_name: "cuwais"
-google_client_id: "389788965612-3hlb0b2lqamt2v7jupphcggnk0t9sol9.apps.googleusercontent.com"
-front_end:
-  server_name: "lvh.me"
