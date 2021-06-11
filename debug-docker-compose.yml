@@ -7,7 +7,7 @@ services:
       - "80:8080"
     volumes:
       - "./server:/home/web_user/server"
-      - "./tmp/repositories:/repositories"
+      - "./tmp/repositories:/home/web_user/repositories"
       - "./tmp/database:/database"
       - "./debug_config.yml:/home/web_user/server/config.yml"
     networks:

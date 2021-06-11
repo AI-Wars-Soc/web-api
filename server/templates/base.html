@@ -1,19 +1,19 @@
 {% macro import(filename) %}
     {% set url = url_for('static', filename=filename) %}
     {% set uri =sri(url) %}
-<script src="{{ url + "?" + uri }}"
-        integrity="{{ uri }}"
-        crossorigin="anonymous"></script>
+    <script src="{{ url + "?" + uri }}"
+            integrity="{{ uri }}"
+            crossorigin="anonymous"></script>
 {% endmacro %}
 {% macro css(filename, id) %}
     {% set id = id|default('css'+filename) %}
     {% set url = url_for('static', filename=filename) %}
     {% set uri =sri(url) %}
-<link href="{{ url + "?" + uri }}"
-      integrity="{{ uri }}"
-      rel="stylesheet"
-      crossorigin="anonymous"
-      id="{{ id }}">
+    <link href="{{ url + "?" + uri }}"
+          integrity="{{ uri }}"
+          rel="stylesheet"
+          crossorigin="anonymous"
+          id="{{ id }}">
 {% endmacro %}
 
 <!-- templates/base.html -->
@@ -37,10 +37,10 @@
           integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
 
     <!-- Bootswatch -->
-    <link rel="stylesheet" integrity="sha384-nNK9n28pDUDDgIiIqZ/MiyO3F4/9vsMtReZK39klb/MtkZI3/LtjSjlmyVPS3KdN",
+    <link rel="stylesheet" integrity="sha384-nNK9n28pDUDDgIiIqZ/MiyO3F4/9vsMtReZK39klb/MtkZI3/LtjSjlmyVPS3KdN"
           href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css" crossorigin="anonymous"
           id="bootswatch-dark">
-    <link rel="stylesheet" integrity="sha384-qF/QmIAj5ZaYFAeQcrQ6bfVMAh4zZlrGwTPY7T/M+iTTLJqJBJjwwnsE5Y0mV7QK",
+    <link rel="stylesheet" integrity="sha384-qF/QmIAj5ZaYFAeQcrQ6bfVMAh4zZlrGwTPY7T/M+iTTLJqJBJjwwnsE5Y0mV7QK"
           href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/flatly/bootstrap.min.css" crossorigin="anonymous"
           id="bootswatch-light">
     <link rel="stylesheet" crossorigin="anonymous"
@@ -54,14 +54,21 @@
 
     <!-- Font Awesome js -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
-          integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+          integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous"
+          media="none" onload="if(media!='all')media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+              integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
+              crossorigin="anonymous">
+    </noscript>
+
 
     <!-- Cookies -->
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
 
     <!-- jQuery, jQuery UI, Bootstrap and popper -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"
-            integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+            integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
             crossorigin="anonymous"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
             integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
@@ -86,14 +93,14 @@
           integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
     {% if user is none %}
-    {{ import('scripts/login.js') }}
+        {{ import('scripts/login.js') }}
 
-    <!-- Google login -->
-    <script src="https://apis.google.com/js/platform.js?onload=Login.googleInit" async defer></script>
-    <meta name="google-signin-client_id"
-          content="{{ config_file.google_client_id }}">
+        <!-- Google login -->
+        <script src="https://apis.google.com/js/platform.js?onload=Login.googleInit" async defer></script>
+        <meta name="google-signin-client_id"
+              content="{{ config_file.google_client_id }}">
         {% if config_file.allowed_email_domain is not none %}
-        <meta name="google-signin-hosted_domain" content="{{ config_file.allowed_email_domain }}">
+            <meta name="google-signin-hosted_domain" content="{{ config_file.allowed_email_domain }}">
         {% endif %}
     {% endif %}
 
@@ -174,6 +181,7 @@
                                     function onGoogleSignIn(e) {
                                         return Login.onGoogleSignIn(e);
                                     }
+
                                     function onGoogleFail(e) {
                                         return Login.onLoginFail(e);
                                     }

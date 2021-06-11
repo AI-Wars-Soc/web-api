@@ -13,7 +13,7 @@ from cuwais.config import config_file
 _cloning_dirs_mutex = Lock()
 
 
-GIT_BASE_DIR = '/repositories/'
+GIT_BASE_DIR = '/home/web_user/repositories/'
 GIT_HASH_RE = re.compile(r"^(?P<hash>[0-9a-f]{40})\s*HEAD$", re.MULTILINE)
 
 
