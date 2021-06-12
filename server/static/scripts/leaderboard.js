@@ -1,78 +1,75 @@
-function _gcd_two(a, b)
-{
-    if (b === 0)
-        return a;
-    return _gcd_two(b, a % b);
-}
+const leaderboard = (function () {
+    const obj = {};
 
-function gcd(...arr)
-{
-    let ans = arr[0];
+    const duration = 1000;
+    const delta = 250;
 
-    for (let i = 1; i < arr.length; i++) {
-        ans = _gcd_two(arr[i], ans);
+    const seenBefore = localStorage.seenLeaderboard === '1';
+    localStorage.seenLeaderboard = '1';
+
+    function _gcd_two(a, b) {
+        if (b === 0)
+            return a;
+        return _gcd_two(b, a % b);
     }
 
-    return ans;
-}
+    function gcd(...arr) {
+        let ans = arr[0];
 
-function convert_date(unix) {
-    const date = new Date(unix * 1000);
+        for (let i = 1; i < arr.length; i++) {
+            ans = _gcd_two(arr[i], ans);
+        }
 
-    const day = date.getDate();
-    const month = date.getMonth();
-    const hours = date.getHours();
-    const minutes = "0" + date.getMinutes();
-
-    return day + "/" + month + " " + hours + ':' + minutes.substr(-2);
-}
-
-class Leaderboard {
-    constructor(duration = 1000, delta = 250) {
-        this.duration = duration;
-        this.delta = delta;
-
-        this.seenBefore = localStorage.seenLeaderboard === '1';
-        localStorage.seenLeaderboard = '1';
+        return ans;
     }
 
-    static reset() {
+    function convert_date(unix) {
+        const date = new Date(unix * 1000);
+
+        const day = date.getDate();
+        const month = date.getMonth();
+        const hours = date.getHours();
+        const minutes = "0" + date.getMinutes();
+
+        return day + "/" + month + " " + hours + ':' + minutes.substr(-2);
+    }
+
+    obj.reset = function() {
         localStorage.seenLeaderboard = '0';
     }
 
-    static get_entry_id(index) {
+    function get_entry_id(index) {
         return "leaderboard-entry-" + (index + 1);
     }
 
-    static get_leaderboard_item(index) {
-        return $("#" + Leaderboard.get_entry_id(index));
+    function get_leaderboard_item(index) {
+        return $("#" + get_entry_id(index));
     }
 
-    fade_in(f_after) {
-        if (this.seenBefore) {
+    function fade_in(f_after) {
+        if (seenBefore) {
             f_after();
             return;
         }
 
         let index = 0;
-        let item = Leaderboard.get_leaderboard_item(index);
-        while(item.length !== 0) {
-            const delay = this.delta * index;
+        let item = get_leaderboard_item(index);
+        while (item.length !== 0) {
+            const delay = delta * index;
             item.hide();
-            window.setTimeout(Leaderboard.fade_in_one, delay, item, this.duration);
+            window.setTimeout(fade_in_one, delay, item, duration);
 
             index++;
-            item = Leaderboard.get_leaderboard_item(index);
+            item = get_leaderboard_item(index);
         }
-        window.setTimeout(f_after, this.delta * index + this.duration);
+        window.setTimeout(f_after, delta * index + duration);
     }
 
-    static fade_in_one(entry, duration) {
+    function fade_in_one(entry, duration) {
         entry.show("slide", {direction: "right"}, duration);
     }
 
-
-    static get_graph_data(users, deltas, initial_score) {
+    function get_graph_data(users, deltas, initial_score) {
         // Get all sampled time steps
         let timestamp_set = new Set();
         for (let i = 0; i < deltas.length; i++) {
@@ -109,18 +106,18 @@ class Leaderboard {
         // Populate user data
         // TODO: This can be done in O(n) in two passes by storing diffs then sweeping rather than O(n^2)
         for (let i = 0; i < deltas.length; i++) {
-            const delta = deltas[i];
-            const timestamp_i = Math.round((delta.time - timestamp_min) / timestep);
-            const points = user_id_points.get("" + delta.user_id);
+            const this_delta = deltas[i];
+            const timestamp_i = Math.round((this_delta.time - timestamp_min) / timestep);
+            const points = user_id_points.get("" + this_delta.user_id);
 
             if (timestamp_i > 0 && isNaN(points[timestamp_i - 1])) {
                 points[timestamp_i - 1] = initial_score;
             }
-            for (let j = timestamp_i; j < points.length; j++){
+            for (let j = timestamp_i; j < points.length; j++) {
                 if (isNaN(points[j])) {
                     points[j] = initial_score;
                 }
-                points[j] += delta.delta;
+                points[j] += this_delta.delta;
             }
         }
 
@@ -138,16 +135,16 @@ class Leaderboard {
             }
 
             datasets.push({
-                    label: user.display_name,
-                    data: user_id_points.get(user_id),
-                    fill: false,
-                    radius: 1,
-                    hitRadius: 3,
-                    hoverRadius: 6,
-                    borderColor: color,
-                    cubicInterpolationMode: 'monotone',
-                    tension: 0.4
-                });
+                label: user.display_name,
+                data: user_id_points.get(user_id),
+                fill: false,
+                radius: 1,
+                hitRadius: 3,
+                hoverRadius: 6,
+                borderColor: color,
+                cubicInterpolationMode: 'monotone',
+                tension: 0.4
+            });
         }
         return {
             labels: labels,
@@ -155,13 +152,13 @@ class Leaderboard {
         };
     }
 
-    static make_graph_dom() {
+    function make_graph_dom() {
         $("#overTimeChartContainer").append($("<canvas />", {id: "overTimeChart"}).hide());
     }
 
-    make_graph() {
+    function make_graph() {
         // Make graph object
-        Leaderboard.make_graph_dom();
+        make_graph_dom();
         const ctx = document.getElementById('overTimeChart').getContext('2d');
         const config = {
             type: 'line',
@@ -175,7 +172,7 @@ class Leaderboard {
                     },
                 },
                 interaction: {
-                intersect: false,
+                    intersect: false,
                 },
                 scales: {
                     x: {
@@ -197,7 +194,7 @@ class Leaderboard {
         this.chart = new Chart(ctx, config);
 
         const chart_jquery = $("#overTimeChart");
-        if (this.seenBefore) {
+        if (seenBefore) {
             chart_jquery.show();
         } else {
             chart_jquery.show("blind");
@@ -211,11 +208,13 @@ class Leaderboard {
             const response = JSON.parse(xhr.responseText);
             const json_data = response.data;
 
-            leaderboard.chart.data = Leaderboard.get_graph_data(json_data.users, json_data.deltas, json_data.initial_score);
+            leaderboard.chart.data = get_graph_data(json_data.users, json_data.deltas, json_data.initial_score);
             leaderboard.chart.update();
         };
         xhr.send();
     }
-}
 
-leaderboard = new Leaderboard(1000, 250);
+    templates.add_function_post_generate(() => {
+        fade_in(() => make_graph());
+    })
+}());
