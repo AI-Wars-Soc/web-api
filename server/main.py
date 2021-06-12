@@ -5,6 +5,7 @@ import logging
 import os
 from datetime import timedelta
 
+from jinja2 import Markup
 from werkzeug.middleware.profiler import ProfilerMiddleware
 import cuwais.database
 from cuwais.config import config_file
@@ -28,7 +29,6 @@ if app.config["DEBUG"]:
     app.config['PROFILE'] = config_file.get("profile")
     app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
-
 app.config["SESSION_COOKIE_NAME"] = "session_id"
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_COOKIE_SECURE"] = not app.config["DEBUG"]
@@ -46,6 +46,7 @@ def expose_root_file(file_name):
 
     def new_endpoint():
         return app.send_static_file(file_path)
+
     new_endpoint.__name__ = name
     app.route('/' + name)(new_endpoint)
 
@@ -174,12 +175,8 @@ def leaderboard(user, db_session):
 @app.route('/submissions')
 @logged_in_session_bound
 def submissions(user, db_session):
-    subs = data.get_all_user_submissions(db_session, user, private=True)
-    current_sub = data.get_current_submission(db_session, user)
     return rich_render_template(
-        'submissions', user,
-        submissions=subs,
-        current_sub_id=current_sub.id if current_sub is not None else None,
+        'submissions', user
     )
 
 
@@ -352,6 +349,60 @@ def set_submission_active(user, db_session):
     data.set_submission_enabled(db_session, submission_id, enabled)
 
     encoded = json.dumps({"status": "success", "submission_id": submission_id})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/api/get_submissions', methods=['POST'])
+@logged_in_session_bound
+def get_submissions_data(user, db_session):
+    subs = data.get_all_user_submissions(db_session, user, private=True)
+
+    def transform(sub, i, selected):
+        class_names = []
+        if sub['active']:
+            class_names.append('submission-entry-active')
+        if sub['tested'] and not sub['healthy']:
+            class_names.append('invalid-stripes')
+        if not sub['tested']:
+            class_names.append('testing-stripes')
+        if selected:
+            class_names.append('submission-entry-selected')
+
+        trans = {"div_class": " ".join(class_names),
+                 "subdiv_class":
+                     'submission-entry-testing' if not sub['tested']
+                     else 'submission-entry-invalid' if not sub['healthy']
+                     else "",
+                 "index": i,
+                 "submission_id": sub["submission_id"],
+                 "submission_date": sub["submission_date"].strftime('%d %b at %I:%M %p'),
+                 "active": sub['active'],
+                 "healthy": sub['healthy'],
+                 "crashed": sub['tested'] and not sub['healthy'],
+                 "status": "Selected" if selected
+                 else "Testing" if not sub['tested']
+                 else "Invalid" if not sub['healthy']
+                 else "",
+                 "enabled_status": "Enabled" if sub['active'] else "Disabled",
+                 }
+
+        crash = sub['crash']
+        if crash is not None:
+            trans = {**trans,
+                     "crash_reason": crash['result'].replace("-", " ").capitalize(),
+                     "crash_reason_long": reason_crash(crash['result']),
+                     "no_print": len(crash['prints']) == 0,
+                     "prints": crash['prints']}
+
+        return trans
+
+    current_sub = data.get_current_submission(db_session, user)
+    transformed_subs = [transform(sub, len(subs) - i, sub['submission_id'] == current_sub.id)
+                        for i, sub in enumerate(subs)]
+
+    encoded = json.dumps({"submissions": transformed_subs, "no_submissions": len(transformed_subs) == 0})
     return Response(encoded,
                     status=200,
                     mimetype='application/json')

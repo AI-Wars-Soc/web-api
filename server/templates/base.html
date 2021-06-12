@@ -1,6 +1,6 @@
 {% macro import(filename) %}
     {% set url = url_for('static', filename=filename) %}
-    {% set uri =sri(url) %}
+    {% set uri = sri(url) %}
     <script src="{{ url + "?" + uri }}"
             integrity="{{ uri }}"
             crossorigin="anonymous"></script>
@@ -8,12 +8,20 @@
 {% macro css(filename, id) %}
     {% set id = id|default('css'+filename) %}
     {% set url = url_for('static', filename=filename) %}
-    {% set uri =sri(url) %}
+    {% set uri = sri(url) %}
     <link href="{{ url + "?" + uri }}"
           integrity="{{ uri }}"
           rel="stylesheet"
           crossorigin="anonymous"
           id="{{ id }}">
+{% endmacro %}
+{% macro client_template(template, data_url, div_id) %}
+    {% set filename = "client-templates/" + template + ".mustache" %}
+    {% set url = url_for('static', filename=filename) %}
+    {% set uri = sri(url) %}
+    <script>
+        templates.add_template("{{ url + "?" + uri }}", "{{ data_url }}", "{{ div_id }}");
+    </script>
 {% endmacro %}
 
 <!-- templates/base.html -->
@@ -62,6 +70,11 @@
               crossorigin="anonymous">
     </noscript>
 
+    <!-- Handlebars -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"
+            integrity="sha512-RNLkV3d+aLtfcpEyFG8jRbnWHxUqVZozacROI4J2F1sTaDqo1dPQYs01OMi1t1w9Y2FdbSCDSQ2ZVdAC8bzgAg=="
+            crossorigin="anonymous"></script>
+
 
     <!-- Cookies -->
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@rc/dist/js.cookie.min.js"></script>
@@ -86,11 +99,8 @@
             crossorigin="anonymous"></script>
 
     <!-- CUWAIS Scripts -->
+    {{ import('scripts/template.js') }}
     {{ import('scripts/style.js') }}
-
-    <!-- Font Awesome js -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
-          integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 
     {% if user is none %}
         {{ import('scripts/login.js') }}

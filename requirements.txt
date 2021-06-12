@@ -12,3 +12,4 @@ redis~=3.5.3
 werkzeug~=1.0.1
 sh~=1.14.1
 psycopg2~=2.8.6
+Jinja2~=2.11.3

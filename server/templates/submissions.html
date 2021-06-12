@@ -12,91 +12,6 @@
         </p>
     </div>
     <!-- Submissions -->
-    {% macro submission(number, item, selected) -%}
-        <div class="d-flex justify-content-center w-100 flex-row p-1 p-md-2 px-lg-5">
-            <div class="card max-width-center submission-entry {{ 'submission-entry-active' if item.active }} {{ 'submission-entry-selected' if selected }}
-                        {{ 'invalid-stripes' if (not item.healthy) and item.tested }} {{ 'testing-stripes' if not item.tested }}">
-                <div class="{{ 'submission-entry-invalid' if (not item.healthy) and item.tested }} {{ 'submission-entry-testing' if not item.tested }}
-                            card-header submission-rounded" id="submission-heading-{{- number -}}" data-toggle="collapse"
-                            data-target="#submission-collapse-{{- number -}}" aria-expanded="false" aria-controls="submission-collapse-{{- number -}}">
-                    <div class="mb-0 panel-title">
-                    <span class="h5">
-                        Submission {{ number }}
-                    </span>
-                    <span class="h6 font-weight-bold mx-1 mx-md-3">
-                        {% if selected %}
-                            Selected
-                        {% endif %}
-                        {% if not item.tested %}
-                            Testing
-                        {% endif %}
-                        {% if not item.healthy and item.tested %}
-                            Invalid
-                        {% endif %}
-                    </span>
-                    </div>
-                </div>
-
-                <div id="submission-collapse-{{- number -}}" class="collapse submission-collapse" aria-labelledby="submission-heading-{{- number -}}"
-                     aria-expanded="false" data-parent="#submissions-accordion" data-submission-id="{{- item.submission_id -}}">
-                    <div class="card-body">
-                        <div class="container">
-                            <div class="row justify-content-center">
-                                <div class="col-11 col-md-6">
-                                    <div class="p-1 submission-date">
-                                        {{ item.submission_date.strftime('%d %b at %I:%M %p') }}
-                                    </div>
-                                    {% if item.healthy %}
-                                    <div class="p-1 submission-active-switch">
-                                        <div class="custom-control custom-switch">
-                                            <input type="checkbox" class="custom-control-input" id="enabledSwitch{{- item.submission_id -}}"
-                                                   {% if item.active %} checked {% endif %}
-                                                   onchange="submissions.setSubmissionEnabledSwitch(this, {{- item.submission_id -}})">
-                                            <label class="custom-control-label" for="enabledSwitch{{- item.submission_id -}}">{% if item.active %}Enabled{% else %}Disabled{% endif %}</label>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-11 col-md-6">
-                                {% if item.healthy %}
-                                    <canvas width="100" height="100" class="w-100" id="submissionSummaryGraph{{- item.submission_id -}}" style="display: none;">
-                                    </canvas>
-                                {% elif item.tested %}
-                                    <div class="submission-crash-report p-1 px-3">
-                                        <div>
-                                            <b>Crash Reason:</b>
-                                            <p class="text-monospace">{{ item.crash.result.replace("-", " ").capitalize() -}}</p>
-                                        </div>
-                                        <p>
-                                            {{ reason_crash(item.crash.result) }}
-                                        </p>
-                                        <div>
-                                        {% if item.crash.prints|length == 0 %}
-                                            Your AI did not print anything.
-                                        {% else %}
-                                            Your AI printed the following:
-                                            <div>
-                                                <p class="text-monospace">{{ item.crash.prints }}</p>
-                                            </div>
-                                        {% endif %}
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {%- endmacro %}
-    {% macro all_submissions(items) -%}
-        <div id="submissions-accordion">
-        {% for item in items %}
-            {{ submission((items|length - loop.index) + 1, item, item.submission_id == current_sub_id) }}
-        {% endfor %}
-        </div>
-    {%- endmacro %}
     <div class="my-2 my-md-4 d-flex flex-row">
         <div class="d-flex justify-content-center w-100 w-lg-50">
             <div class="d-flex flex-column mx-lg-4 flex-grow-1" id="submissions">
@@ -108,13 +23,15 @@
                                     <label for="repo" class="my-auto text-right">Your Repository URL:</label>
                                 </div>
                                 <div class="col-12 col-md-8 my-auto">
-                                    <input type="url" class="form-control" id="repo" placeholder="https://github.com/your/repo" required>
+                                    <input type="url" class="form-control" id="repo"
+                                           placeholder="https://github.com/your/repo" required>
                                 </div>
                                 <div class="col-12 col-md-2 my-auto py-2 py-sm-3 py-md-0">
                                     <div class="d-flex w-100 justify-content-center justify-content-md-left">
                                         <button type="submit" class="btn btn-primary submission-submit-button">
                                             Submit
-                                            <span class="spinner-border spinner-border-sm" role="status" id="submit-spinner" style="display: none;"></span>
+                                            <span class="spinner-border spinner-border-sm" role="status"
+                                                  id="submit-spinner" style="display: none;"></span>
                                         </button>
                                     </div>
                                 </div>
@@ -123,28 +40,18 @@
                     </form>
                     <div class="justify-content-start justify-content-sm-center d-flex">
                         <div id="submission-error-msg"
-                                 class="m-1 m-sm-3 p-2 bg-danger text-white text-center border border-danger rounded"
-                                 style="display:none">
-                                Something went wrong.
+                             class="m-1 m-sm-3 p-2 bg-danger text-white text-center border border-danger rounded"
+                             style="display:none">
+                            Something went wrong.
                         </div>
                     </div>
                 </div>
                 <div class="p-1 p-md-2">
-                    {{ all_submissions(submissions) }}
+                    {{ client_template("submissions-template", "/api/get_submissions", "#submissions-accordion") }}
+                    <div id="submissions-accordion">
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="d-flex justify-content-center">
-        {% if submissions|length == 0 %}
-        <div class="p-2 text-center border border-info rounded">
-            To begin, clone the <a href="https://github.com/AI-Wars-Soc/chess-ai">Github Repository</a> for
-            the signatures of the method that you need to implement.
-        </div>
-        {% endif %}
-    </div>
-
-    <script>
-        submissions.registerElements();
-    </script>
 {% endblock %}

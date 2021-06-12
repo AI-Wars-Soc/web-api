@@ -1,0 +1,81 @@
+{{#each submissions }}
+    <div class="d-flex justify-content-center w-100 flex-row p-1 p-md-2 px-lg-5">
+        <div class="card max-width-center submission-entry {{ div_class }}">
+            <div class="{{ subdiv_class }} card-header submission-rounded" id="submission-heading-{{ index }}" data-toggle="collapse"
+                        data-target="#submission-collapse-{{ index }}" aria-expanded="false" aria-controls="submission-collapse-{{ index }}">
+                <div class="mb-0 panel-title">
+                <span class="h5">
+                    Submission {{ index }}
+                </span>
+                <span class="h6 font-weight-bold mx-1 mx-md-3">
+                    {{ status }}
+                </span>
+                </div>
+            </div>
+
+            <div id="submission-collapse-{{ index }}" class="collapse submission-collapse" aria-labelledby="submission-heading-{{ index }}"
+                 aria-expanded="false" data-parent="#submissions-accordion" data-submission-id="{{ submission_id }}">
+                <div class="card-body">
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-11 col-md-6">
+                                <div class="p-1 submission-date">
+                                    {{ submission_date }}
+                                </div>
+                                {{#if healthy }}
+                                <div class="p-1 submission-active-switch">
+                                    <div class="custom-control custom-switch">
+                                        <input type="checkbox" class="custom-control-input" id="enabledSwitch{{ submission_id }}"
+                                            {{#if active }} checked {{/if}}
+                                               onchange="submissions.setSubmissionEnabledSwitch(this, {{ submission_id }})">
+                                        <label class="custom-control-label" for="enabledSwitch{{ submission_id }}">{{ enabled_status }}</label>
+                                    </div>
+                                </div>
+                                {{/if}}
+                            </div>
+                            <div class="col-11 col-md-6">
+                            {{#if healthy }}
+                                <canvas width="100" height="100" class="w-100" id="submissionSummaryGraph{{ submission_id }}" style="display: none;">
+                                </canvas>
+                            {{/if}}
+                            {{#if crashed }}
+                                <div class="submission-crash-report p-1 px-3">
+                                    <div>
+                                        <b>Crash Reason:</b>
+                                        <p class="text-monospace">{{ crash_reason }}</p>
+                                    </div>
+                                    <p>
+                                        {{ crash_reason_long }}
+                                    </p>
+                                    <div>
+                                    {{#if no_print }}
+                                        Your AI did not print anything.
+                                    {{/if}}
+                                    {{#unless no_print }}
+                                        Your AI printed the following:
+                                        <div>
+                                            <p class="text-monospace">{{ prints }}</p>
+                                        </div>
+                                    {{/unless}}
+                                    </div>
+                                </div>
+                            {{/if}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{{/each }}
+{{#if no_submissions }}
+    <div class="d-flex my-3 justify-content-center">
+        {% if submissions|length == 0 %}
+            <div class="p-2 text-center border border-info rounded">
+                To begin, clone the <a href="https://github.com/AI-Wars-Soc/chess-ai">Github
+                Repository</a> for
+                the signatures of the method that you need to implement.
+            </div>
+        {% endif %}
+    </div>
+{{/if}}

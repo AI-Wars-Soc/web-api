@@ -1,9 +1,9 @@
-class Submissions {
-    constructor() {
-        this.madeGraphs = new Set();
-    }
+submissions = (function () {
+    let obj = {};
 
-    setSubmissionEnabledSwitch(checkbox, submission_id) {
+    const madeGraphs = new Set();
+
+    obj.setSubmissionEnabledSwitch = function(checkbox, submission_id) {
         const v = checkbox.checked;
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/set_submission_active');
@@ -14,9 +14,10 @@ class Submissions {
         xhr.onerror = function () {
             console.log(xhr.responseText);
             const response = JSON.parse(xhr.responseText)
-            this.submission_error_box.text(response.message);
-            this.submission_error_box.show();
-            Submissions.uncheck(checkbox, !v);
+            const error_box = $("#submission-error-msg");
+            error_box.text(response.message);
+            error_box.show();
+            uncheck(checkbox, !v);
         };
         xhr.send(JSON.stringify({
             submission_id: submission_id,
@@ -24,108 +25,104 @@ class Submissions {
         }));
     }
 
-    static uncheck(checkbox, unchecked) {
+    function uncheck(checkbox, unchecked) {
         checkbox.checked = unchecked;
     }
 
-    onSubmit(e) {
+    function onSubmit(e) {
         e.preventDefault();
-        const url = this.repo_box.val();
-        const _this = this;
-
-        this.submit_spinner.show();
+        const url = $("#repo").val();
+        const spinner = $("#submit-spinner");
+        spinner.show();
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_submission');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
             if (xhr.status !== 200) {
-                _this.onSubmitFail(xhr.responseText);
+                onSubmitFail(xhr.responseText);
                 return;
             }
             const response = JSON.parse(xhr.responseText)
             if (response.status === "resent") { // Ignore resent requests
                 return;
             }
-            _this.submission_error_box.hide();
-            window.location.reload();
+            $("#submission-error-msg").hide();
+            spinner.hide();
+            templates.refresh();
         };
         xhr.onerror = function () {
-            _this.onSubmitFail(xhr.responseText);
+            onSubmitFail(xhr.responseText);
         };
         xhr.send(JSON.stringify({
             url: url
         }));
     }
 
-    onBotSubmit(e) {
+    function onBotSubmit(e) {
         e.preventDefault();
-        const _this = this;
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/add_bot');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
             if (xhr.status !== 200) {
-                _this.onSubmitFail(xhr.responseText);
+                onSubmitFail(xhr.responseText);
                 return;
             }
-            _this.submission_error_box.hide();
-            _this.repo_box.val("");
+            $("#submission-error-msg").hide();
+            $("#repo").val("");
             window.location.reload();
         };
         xhr.onerror = function () {
-            _this.onSubmitFail(xhr.responseText);
+            onSubmitFail(xhr.responseText);
         };
         xhr.send(JSON.stringify({
-            url: this.repo_box.val(),
-            name: this.bot_name_box.val()
+            url: $("#repo").val(),
+            name: $("#bot-name").val()
         }));
     }
 
-    onSubmitFail(response_text) {
+    function onSubmitFail(response_text) {
         console.log(response_text);
         const response = JSON.parse(response_text);
-        this.submission_error_box.text(response.message);
-        this.repo_box.effect("shake");
-        this.submission_error_box.show();
-        this.submit_spinner.hide();
+        const error_box = $("#submission-error-msg");
+        error_box.text(response.message);
+        $("#repo").effect("shake");
+        error_box.show();
+        $("#submit-spinner").hide();
     }
 
-    deleteBot(id) {
+    function deleteBot(id) {
         const xhr = new XMLHttpRequest();
-        const _this = this;
         xhr.open('POST', '/api/remove_bot');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
             if (xhr.status !== 200) {
-                _this.onSubmitFail(xhr.responseText);
+                onSubmitFail(xhr.responseText);
                 return;
             }
             window.location.reload();
         };
         xhr.onerror = function () {
-            _this.onSubmitFail(xhr.responseText);
+            onSubmitFail(xhr.responseText);
         };
         xhr.send(JSON.stringify({
             id: id
         }));
     }
 
-    registerCollapse(s) {
-        s = $(s);
-        const _this = this;
+    function registerCollapse(s) {
         const id = s.data("submissionId");
         s.on('show.bs.collapse', function () {
-            _this.makeGraph(id);
+            makeGraph(id);
         });
     }
 
-    makeGraph(id) {
-        if (this.madeGraphs.has(id)) {
+    function makeGraph(id) {
+        if (madeGraphs.has(id)) {
             return;
         }
-        const s = this;
 
         const canvas_id = 'submissionSummaryGraph' + id;
         const objs = $("#" + canvas_id);
@@ -138,7 +135,7 @@ class Submissions {
         xhr.open('POST', '/api/get_submission_summary_graph');
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onload = function () {
-            s.madeGraphs.add(id);
+            madeGraphs.add(id);
             const response = JSON.parse(xhr.responseText);
             const ctx = document.getElementById(canvas_id).getContext('2d');
             const color_win = "#36e5eb";
@@ -204,7 +201,7 @@ class Submissions {
                     }
                 },
             };
-            s.chart = new Chart(ctx, config);
+            new Chart(ctx, config);
         };
         xhr.onerror = function () {
             $("#" + canvas_id).hide();
@@ -215,16 +212,13 @@ class Submissions {
         }));
     }
 
-    registerElements() {
-        this.submission_error_box = $("#submission-error-msg");
-        this.repo_box = $("#repo");
-        this.bot_name_box = $("#bot-name");
-        this.submit_spinner = $("#submit-spinner")
+    $(() => $('#submission-form').submit(e => onSubmit(e)));
+    $(() => $('#bot-form').submit(e => onBotSubmit(e)));
 
-        $('#submission-form').submit(e => submissions.onSubmit(e));
-        $('#bot-form').submit(e => submissions.onBotSubmit(e));
-        Array.from($(".submission-collapse")).forEach(s => submissions.registerCollapse(s));
-    }
-}
+    templates.add_function_post_generate(() => {
+        $(".submission-collapse").each((index, collapse) => registerCollapse($(collapse)));
+    });
 
-const submissions = new Submissions();
+    return obj;
+}());
+
