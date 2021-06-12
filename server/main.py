@@ -358,8 +358,11 @@ def set_submission_active(user, db_session):
 @logged_in_session_bound
 def get_submissions_data(user, db_session):
     subs = data.get_all_user_submissions(db_session, user, private=True)
+    current_sub = data.get_current_submission(db_session, user)
 
-    def transform(sub, i, selected):
+    def transform(sub, i):
+        selected = current_sub is not None and sub['submission_id'] == current_sub.id
+
         class_names = []
         if sub['active']:
             class_names.append('submission-entry-active')
@@ -398,8 +401,7 @@ def get_submissions_data(user, db_session):
 
         return trans
 
-    current_sub = data.get_current_submission(db_session, user)
-    transformed_subs = [transform(sub, len(subs) - i, sub['submission_id'] == current_sub.id)
+    transformed_subs = [transform(sub, len(subs) - i)
                         for i, sub in enumerate(subs)]
 
     encoded = json.dumps({"submissions": transformed_subs, "no_submissions": len(transformed_subs) == 0})
