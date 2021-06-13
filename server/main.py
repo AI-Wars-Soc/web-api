@@ -179,11 +179,29 @@ def submissions(user, db_session):
     )
 
 
-@app.route('/play/<submission>')
+def validate_submission_viewable(db_session, user, submission_id):
+    return data.is_current_submission(db_session, submission_id) \
+           or data.submission_is_owned_by_user(db_session, submission_id, user)
+
+
+def validate_submission_playable(db_session, user, submission_id):
+    return validate_submission_viewable(db_session, user, submission_id) \
+            and data.is_submission_healthy(db_session, submission_id)
+
+
+@app.route('/play/<submission_id>')
 @logged_in_session_bound
-def play(user, db_session, submission):
+def play(user, db_session, submission_id):
+    if not validate_submission_playable(db_session, user, submission_id):
+        abort(404)
+
+    game_boards = {"chess": 'games/game_chess'}
+    game = config_file.get("gamemode.id")
+    if game not in game_boards.keys():
+        return game
+
     return rich_render_template(
-        'games/game_chess', user
+        game_boards[game], user
     )
 
 
@@ -256,7 +274,6 @@ def _make_api_failure(message):
 @logged_in_session_bound
 def add_submission(user, db_session):
     json_in = request.json
-    print(json_in, flush=True)
     url = json_in["url"]
     try:
         submission_id = data.create_submission(db_session, user, url)
