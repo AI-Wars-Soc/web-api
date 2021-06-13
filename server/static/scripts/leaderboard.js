@@ -34,7 +34,7 @@ const leaderboard = (function () {
         return day + "/" + month + " " + hours + ':' + minutes.substr(-2);
     }
 
-    obj.reset = function() {
+    obj.reset = function () {
         localStorage.seenLeaderboard = '0';
     }
 
@@ -152,17 +152,10 @@ const leaderboard = (function () {
         };
     }
 
-    function make_graph_dom() {
-        $("#overTimeChartContainer").append($("<canvas />", {id: "overTimeChart"}).hide());
-    }
-
-    function make_graph() {
-        // Make graph object
-        make_graph_dom();
-        const ctx = document.getElementById('overTimeChart').getContext('2d');
-        const config = {
+    function get_graph_config(users, deltas, initial_score) {
+        return {
             type: 'line',
-            data: [],
+            data: get_graph_data(users, deltas, initial_score),
             options: {
                 responsive: true,
                 plugins: {
@@ -190,28 +183,26 @@ const leaderboard = (function () {
                     }
                 }
             },
-        };
-        this.chart = new Chart(ctx, config);
-
-        const chart_jquery = $("#overTimeChart");
-        if (seenBefore) {
-            chart_jquery.show();
-        } else {
-            chart_jquery.show("blind");
         }
+    }
 
-        const leaderboard = this;
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/get_leaderboard_over_time');
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function () {
-            const response = JSON.parse(xhr.responseText);
-            const json_data = response.data;
+    function make_graph() {
+        // Make graph object
+        $("#overTimeChartContainer").html($("<canvas />", {id: "overTimeChart"}).hide());
 
-            leaderboard.chart.data = get_graph_data(json_data.users, json_data.deltas, json_data.initial_score);
-            leaderboard.chart.update();
-        };
-        xhr.send();
+        $.post('/api/get_leaderboard_over_time')
+            .then(response => {
+                const ctx = document.getElementById('overTimeChart').getContext('2d');
+                const config = get_graph_config(response.data.users, response.data.deltas, response.data.initial_score);
+                new Chart(ctx, config);
+
+                const chart_jquery = $("#overTimeChart");
+                if (seenBefore) {
+                    chart_jquery.show();
+                } else {
+                    chart_jquery.show("blind");
+                }
+            });
     }
 
     templates.add_function_post_generate(() => {

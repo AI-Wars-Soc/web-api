@@ -166,9 +166,8 @@ def about(db_session):
 @app.route('/leaderboard')
 @logged_in_session_bound
 def leaderboard(user, db_session):
-    scoreboard = data.get_scoreboard(db_session, user)
     return rich_render_template(
-        'leaderboard', user, leaderboard=scoreboard
+        'leaderboard', user
     )
 
 
@@ -349,6 +348,34 @@ def set_submission_active(user, db_session):
     data.set_submission_enabled(db_session, submission_id, enabled)
 
     encoded = json.dumps({"status": "success", "submission_id": submission_id})
+    return Response(encoded,
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/api/get_leaderboard', methods=['POST'])
+@logged_in_session_bound
+def get_leaderboard_data(user, db_session):
+    scoreboard = data.get_scoreboard(db_session, user)
+
+    def transform(item, i):
+        trans = {"position": i,
+                 "name": item["user"]["display_name"],
+                 "is_real_name": item["user"]["display_real_name"],
+                 "nickname": item["user"]["nickname"],
+                 "wins": item["outcomes"]["wins"],
+                 "losses": item["outcomes"]["losses"],
+                 "draws": item["outcomes"]["draws"],
+                 "score": item["score_text"],
+                 "boarder_style": "leaderboard-user-submission" if item["is_you"]
+                 else "leaderboard-bot-submission" if item["is_bot"]
+                 else "leaderboard-other-submission"}
+
+        return trans
+
+    transformed = [transform(sub, i + 1) for i, sub in enumerate(scoreboard)]
+
+    encoded = json.dumps({"entries": transformed})
     return Response(encoded,
                     status=200,
                     mimetype='application/json')

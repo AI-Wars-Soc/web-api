@@ -1,0 +1,67 @@
+<div class="p-1 px-md-3 text-nowrap" id="leaderboard-entry-{{ position }}">
+    <div class="px-lg-5 d-flex justify-content-center">
+        <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission border-bottom fw-bold">
+            <div class="leaderboard-position">
+                Position
+            </div>
+            <div class="leaderboard-name flex-column">
+                <div class="row">
+                    <div class="p-0 col-auto">
+                        Name
+                    </div>
+                </div>
+            </div>
+            <div class="leaderboard-wins d-none d-md-block">
+                Wins
+            </div>
+            <div class="leaderboard-losses d-none d-md-block">
+                Losses
+            </div>
+            <div class="leaderboard-draws d-none d-md-block">
+                Draws
+            </div>
+            <div class="leaderboard-spacer d-none d-lg-block">
+            </div>
+            <div class="leaderboard-score">
+                Score
+            </div>
+        </div>
+    </div>
+</div>
+{{#each entries }}
+<div class="p-1 px-md-3 text-nowrap" id="leaderboard-entry-{{ position }}">
+    <div class="px-lg-5 d-flex justify-content-center">
+        <div class="max-width-center d-flex w-100 flex-row p-2 p-md-3 leaderboard-submission {{ boarder_style }}">
+            <div class="leaderboard-position">
+                {{ position }}
+            </div>
+            <div class="leaderboard-name flex-column">
+                <div class="row">
+                    <div class="p-0 col-auto">
+                        {{ name }}
+                    </div>
+                    {{#if is_real_name }}
+                    <div class="col-6 d-none d-lg-block nickname-text">
+                        ({{ nickname }})
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+            <div class="leaderboard-wins d-none d-md-block">
+                {{ wins }}
+            </div>
+            <div class="leaderboard-losses d-none d-md-block">
+                {{ losses }}
+            </div>
+            <div class="leaderboard-draws d-none d-md-block">
+                {{ draws }}
+            </div>
+            <div class="leaderboard-spacer d-none d-lg-block">
+            </div>
+            <div class="leaderboard-score">
+                {{ score }}
+            </div>
+        </div>
+    </div>
+</div>
+{{/each }}
