@@ -179,6 +179,14 @@ def submissions(user, db_session):
     )
 
 
+@app.route('/play/<submission>')
+@logged_in_session_bound
+def play(user, db_session, submission):
+    return rich_render_template(
+        'games/game_chess', user
+    )
+
+
 @app.route('/me')
 @logged_in_session_bound
 def me(user, db_session):
