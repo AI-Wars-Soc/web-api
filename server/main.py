@@ -5,14 +5,13 @@ import logging
 import os
 from datetime import timedelta
 
-from jinja2 import Markup
 from werkzeug.middleware.profiler import ProfilerMiddleware
 import cuwais.database
 from cuwais.config import config_file
 from flask import Flask, render_template, request, abort, Response, redirect
 from flask_session import Session
 
-from server import login, data, nav, repo, caching
+from server import login, data, nav, repo, caching, subrunner
 from server.caching import cached
 
 app = Flask(
@@ -259,6 +258,27 @@ def login_google(db_session):
     data.save_user_id(user.id)
 
     return Response(json.dumps(user.to_private_dict()),
+                    status=200,
+                    mimetype='application/json')
+
+
+@app.route('/api/play/<submission_id>/connect', methods=['POST'])
+@logged_in_session_bound
+def play_get_move(user, db_session, submission_id):
+    if not validate_submission_playable(db_session, user, submission_id):
+        abort(404)
+
+    json_in = request.get_json()
+    if 'board' not in json_in:
+        abort(400)
+    if 'move' not in json_in:
+        abort(400)
+    board = json_in.get('board')
+    move = json_in.get('move')
+
+    next_board = subrunner.get_next_board(board, move)
+
+    return Response(json.dumps(next_board),
                     status=200,
                     mimetype='application/json')
 
