@@ -6,7 +6,6 @@ import cuwais
 from cuwais.common import Outcome
 from cuwais.config import config_file
 from cuwais.database import User, Submission, Result, Match
-from flask import session
 from sqlalchemy import select, func, and_
 
 from app import repo, nickname
@@ -14,21 +13,24 @@ from app.caching import cached
 
 
 def save_user_id(user_id):
-    session["cuwais_user_id"] = user_id
+    pass
+    # session["cuwais_user_id"] = user_id
 
 
 def get_user(db_session) -> Optional[User]:
-    user_id = session.get("cuwais_user_id")
+    """user_id = session.get("cuwais_user_id")
     if user_id is None:
         return None
 
     user_id = int(user_id)
 
-    return db_session.query(User).get(user_id)
+    return db_session.query(User).get(user_id)"""
+    return None
 
 
 def remove_user():
-    session.pop("cuwais_user_id", None)
+    pass
+    # session.pop("cuwais_user_id", None)
 
 
 def generate_nickname(db_session):

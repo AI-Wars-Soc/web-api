@@ -21,7 +21,7 @@ RUN chown -R web_user /home/web_user/app
 ENV PYTHONPATH="/home/web_user:/home/web_user/app:${PYTHONPATH}"
 
 # Set up repository permissions
-RUN mkdir /home/web_user/repositories && chown -R web_user:web_user /home/web_user
+RUN mkdir /home/web_user/repositories && chown -R web_user:web_user /home/web_user/repositories
 VOLUME /home/web_user/repositories
 
 # Set up env
