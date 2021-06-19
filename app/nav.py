@@ -2,7 +2,7 @@ from typing import Optional
 
 from cuwais.database import User
 
-from server import data
+from app import data
 
 
 def make_nav_item(text, icon=None, active=False, link='#', data_toggle=None):

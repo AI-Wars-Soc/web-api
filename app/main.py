@@ -1,7 +1,7 @@
 from gevent import monkey
 monkey.patch_all()
 
-from main import app
+from views import app
 import cuwais.database
 
 if __name__ == "__main__":

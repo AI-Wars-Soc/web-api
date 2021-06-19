@@ -11,7 +11,7 @@ import requests
 
 from werkzeug.exceptions import abort
 
-from server import data
+from app import data
 
 session = requests.session()
 cached_session = cachecontrol.CacheControl(session)

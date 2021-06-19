@@ -11,8 +11,8 @@ from cuwais.config import config_file
 from flask import Flask, render_template, request, abort, Response, redirect
 from flask_session import Session
 
-from server import login, data, nav, repo, caching, subrunner
-from server.caching import cached
+from app import login, data, nav, repo, caching, subrunner
+from app.caching import cached
 
 app = Flask(
     __name__,

@@ -9,8 +9,8 @@ from cuwais.database import User, Submission, Result, Match
 from flask import session
 from sqlalchemy import select, func, and_
 
-from server import repo, nickname
-from server.caching import cached
+from app import repo, nickname
+from app.caching import cached
 
 
 def save_user_id(user_id):

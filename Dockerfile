@@ -15,16 +15,20 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 USER root
 
 # Copy scripts
-COPY server /home/web_user/server
-COPY server/default_config.yml /home/web_user/default_config.yml
-RUN chown -R web_user /home/web_user/server
-ENV PYTHONPATH="/home/web_user:/home/web_user/server:${PYTHONPATH}"
+COPY app /home/web_user/app
+COPY app/default_config.yml /home/web_user/default_config.yml
+RUN chown -R web_user /home/web_user/app
+ENV PYTHONPATH="/home/web_user:/home/web_user/app:${PYTHONPATH}"
 
 # Set up repository permissions
 RUN mkdir /home/web_user/repositories && chown -R web_user:web_user /home/web_user
 VOLUME /home/web_user/repositories
 
+# Set up env
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
 WORKDIR /home/web_user
 USER web_user
 EXPOSE 8080
-CMD [ "bash",  "server/run.sh" ]
+CMD [ "bash",  "app/run.sh" ]
