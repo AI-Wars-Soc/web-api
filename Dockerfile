@@ -8,9 +8,11 @@ FROM python:3-buster
 RUN useradd --create-home --shell /bin/bash web_user
 WORKDIR /home/web_user
 
-# Install python libraries
+# Install python libraries as user
+USER web_user
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
+USER root
 
 # Copy scripts
 COPY server /home/web_user/server
@@ -25,4 +27,4 @@ VOLUME /home/web_user/repositories
 WORKDIR /home/web_user
 USER web_user
 EXPOSE 8080
-CMD [ "python3",  "server/main.py" ]
+CMD [ "bash",  "server/run.sh" ]

@@ -515,13 +515,3 @@ def page_404(e):
     return rich_render_template(
         '404', None
     ), 404
-
-
-if __name__ == "__main__":
-    cuwais.database.create_tables()
-    if app.config["DEBUG"]:
-        app.run(host="0.0.0.0", port=8080)
-    else:
-        from waitress import serve
-
-        serve(app, host="0.0.0.0", port=8080)
