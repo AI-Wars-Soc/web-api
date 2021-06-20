@@ -2,8 +2,6 @@ from typing import Optional
 
 from cuwais.database import User
 
-from app import data
-
 
 def make_nav_item(text, icon=None, active=False, link='#', data_toggle=None):
     return dict(text=text, icon=icon, active=active, link=link, data_toggle=data_toggle)
@@ -41,9 +39,8 @@ def make_r_nav(user: Optional[User], current_dir):
     return items
 
 
-def extract_session_objs(user, current_dir):
+def get_nav(user, current_dir):
     return dict(
-        user=user,
         l_nav=make_l_nav(user, current_dir),
         r_nav=make_r_nav(user, current_dir)
     )

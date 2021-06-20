@@ -13,18 +13,59 @@ from jwt import DecodeError
 from pydantic import ValidationError
 from pydantic.main import BaseModel
 from starlette import status
-from starlette.responses import JSONResponse
+from starlette.requests import Request
+from starlette.responses import JSONResponse, RedirectResponse, HTMLResponse
+from starlette.templating import Jinja2Templates
 
-from app import login, data, repo
+from app import login, data, repo, nav
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
 
-app = FastAPI()
+app = FastAPI(root_path="/api/v1")
 if DEBUG and PROFILE:
     add_timing_middleware(app, record=logging.info, prefix="app", exclude="untimed")
+
+templates = Jinja2Templates(directory="/home/web_user/app/templates")
 
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.WARNING)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+def rich_render_template(request: Request, page_name, user, **kwargs):
+    return templates.TemplateResponse(page_name + '.html',
+                                      {
+                                          "request": request,
+                                          "page_name": page_name,
+                                          "config_file": config_file.get_all(),
+                                          **kwargs
+                                      }
+                                      )
+
+
+@app.get('/', response_class=HTMLResponse)
+async def index():
+    return RedirectResponse('/about')
+
+
+@app.get('/about', response_class=HTMLResponse)
+async def about(request: Request):
+    return rich_render_template(
+        request, 'about', None
+    )
+
+
+@app.get('/leaderboard', response_class=HTMLResponse)
+async def leaderboard(request: Request):
+    return rich_render_template(
+        request, 'leaderboard', None
+    )
+
+
+@app.get('/submissions', response_class=HTMLResponse)
+async def submissions(request: Request):
+    return rich_render_template(
+        request, 'submissions', None
+    )
 
 
 class TokenData(BaseModel):
@@ -137,6 +178,16 @@ async def exchange_google_token(google_token: str):
 
 def _make_api_failure(message):
     return {"status": "fail", "message": message}
+
+
+@app.post('/get_navbar_logged_in', response_class=JSONResponse)
+async def get_navbar_logged_in(page_name: str, user: User = Security(get_current_user, scopes=["submission.add"])):
+    return nav.get_nav(user, page_name)
+
+
+@app.post('/get_navbar', response_class=JSONResponse)
+async def get_navbar(page_name: str):
+    return nav.get_nav(None, page_name)
 
 
 @app.post('/add_submission', response_class=JSONResponse)
