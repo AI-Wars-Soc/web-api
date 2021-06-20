@@ -26,15 +26,23 @@ logging.basicConfig(level=logging.DEBUG if DEBUG else logging.WARNING)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+oauth2_optional_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
 
 class TokenData(BaseModel):
     username: Optional[str] = None
     scopes: List[str] = []
 
 
-async def get_current_user(
-        security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)
-):
+async def get_current_user_or_none(security_scopes: SecurityScopes,
+                                   token: Optional[str] = Depends(oauth2_optional_scheme)):
+    if token is None:
+        return None
+
+    return await get_current_user(security_scopes, token)
+
+
+async def get_current_user(security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)):
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -45,7 +53,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": authenticate_value},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithm=ACCESS_TOKEN_ALGORITHM)
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -142,18 +150,14 @@ def _make_api_failure(message):
     return {"status": "fail", "message": message}
 
 
-@app.post('/get_navbar_logged_in', response_class=JSONResponse)
-async def get_navbar_logged_in(page_name: str, user: User = Security(get_current_user, scopes=["submission.add"])):
-    return nav.get_nav(user, page_name)
-
-
 class NavBarData(BaseModel):
     page_name: str
 
 
 @app.post('/get_navbar', response_class=JSONResponse)
-async def get_navbar(data: NavBarData):
-    return nav.get_nav(None, data.page_name)
+async def get_navbar(data: NavBarData,
+                     user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
+    return nav.get_nav(user, data.page_name)
 
 
 @app.post('/add_submission', response_class=JSONResponse)
