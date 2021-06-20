@@ -15,7 +15,7 @@ from pydantic.main import BaseModel
 from starlette import status
 from starlette.responses import JSONResponse
 
-from app import login, data, repo, nav
+from app import login, queries, repo, nav
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
 
 app = FastAPI(root_path="/api")
@@ -32,10 +32,6 @@ class TokenData(BaseModel):
     scopes: List[str] = []
 
 
-async def get_user(token: str = Depends(oauth2_scheme)):
-    return data.get_user(token)
-
-
 async def get_current_user(
         security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)
 ):
@@ -49,7 +45,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": authenticate_value},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithm=ACCESS_TOKEN_ALGORITHM)
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -57,7 +53,7 @@ async def get_current_user(
         token_data = TokenData(scopes=token_scopes, username=username)
     except (DecodeError, ValidationError):
         raise credentials_exception
-    user = get_user(token_data.username)
+    user = queries.get_user(token_data.username)
     if user is None:
         raise credentials_exception
     for scope in security_scopes.scopes:
@@ -94,20 +90,20 @@ def reason_crash(reason):
 
 
 def validate_submission_viewable(db_session, user, submission_id):
-    return data.is_current_submission(db_session, submission_id) \
-           or data.submission_is_owned_by_user(db_session, submission_id, user)
+    return queries.is_current_submission(db_session, submission_id) \
+           or queries.submission_is_owned_by_user(db_session, submission_id, user)
 
 
 def validate_submission_playable(db_session, user, submission_id):
     return validate_submission_viewable(db_session, user, submission_id) \
-           and data.is_submission_healthy(db_session, submission_id)
+           and queries.is_submission_healthy(db_session, submission_id)
 
 
 def create_access_token(token_data: dict, expires_delta: timedelta):
     to_encode = token_data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ACCESS_TOKEN_ALGORITHM)
     return encoded_jwt
 
 
@@ -121,15 +117,22 @@ def get_scopes(user: User):
     return scopes
 
 
+class GoogleTokenData(BaseModel):
+    google_token: str
+
+
 @app.post('/exchange_google_token', response_class=JSONResponse)
-async def exchange_google_token(google_token: str):
+async def exchange_google_token(data: GoogleTokenData):
     with cuwais.database.create_session() as db_session:
-        user = login.get_user_from_google_token(db_session, google_token)
+        user = login.get_user_from_google_token(db_session, data.google_token)
         db_session.commit()
+
+        user_id = user.id
+        scopes = get_scopes(user)
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        token_data={"sub": user.username, "scopes": get_scopes(user)},
+        token_data={"sub": user_id, "scopes": scopes},
         expires_delta=access_token_expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
@@ -144,16 +147,20 @@ async def get_navbar_logged_in(page_name: str, user: User = Security(get_current
     return nav.get_nav(user, page_name)
 
 
+class NavBarData(BaseModel):
+    page_name: str
+
+
 @app.post('/get_navbar', response_class=JSONResponse)
-async def get_navbar(page_name: str):
-    return nav.get_nav(None, page_name)
+async def get_navbar(data: NavBarData):
+    return nav.get_nav(None, data.page_name)
 
 
 @app.post('/add_submission', response_class=JSONResponse)
 async def add_submission(url: str, user: User = Security(get_current_user, scopes=["submission.add"])):
     try:
         with cuwais.database.create_session() as db_session:
-            submission_id = data.create_submission(db_session, user, url)
+            submission_id = queries.create_submission(db_session, user, url)
             db_session.commit()
     except repo.InvalidGitURL:
         return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
@@ -172,10 +179,10 @@ async def add_submission(url: str, user: User = Security(get_current_user, scope
 @app.post('/add_bot', response_class=JSONResponse)
 async def add_bot(name: str, url: str, _: User = Security(get_current_user, scopes=["bot.add"])):
     with cuwais.database.create_session() as db_session:
-        bot = data.create_bot(db_session, name)
+        bot = queries.create_bot(db_session, name)
         db_session.flush()
         try:
-            submission_id = data.create_submission(db_session, bot, url)
+            submission_id = queries.create_submission(db_session, bot, url)
         except repo.InvalidGitURL:
             return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
         except repo.AlreadyExistsException:
@@ -192,7 +199,7 @@ async def add_bot(name: str, url: str, _: User = Security(get_current_user, scop
 @app.post('/set_name_visible', response_class=JSONResponse)
 async def set_name_visible(visible: bool, user: User = Security(get_current_user, scopes=["me"])):
     with cuwais.database.create_session() as db_session:
-        data.set_user_name_visible(db_session, user, visible)
+        queries.set_user_name_visible(db_session, user, visible)
         db_session.commit()
 
     return {"status": "success"}
@@ -201,7 +208,7 @@ async def set_name_visible(visible: bool, user: User = Security(get_current_user
 @app.post('/remove_bot', response_class=JSONResponse)
 async def remove_bot(id: str, _: User = Security(get_current_user, scopes=["bot.remove"])):
     with cuwais.database.create_session() as db_session:
-        data.delete_bot(db_session, id)
+        queries.delete_bot(db_session, id)
         db_session.commit()
 
     return {"status": "success"}
@@ -210,7 +217,7 @@ async def remove_bot(id: str, _: User = Security(get_current_user, scopes=["bot.
 @app.post('/remove_user', response_class=JSONResponse)
 async def remove_user(user: User = Security(get_current_user, scopes=["me"])):
     with cuwais.database.create_session() as db_session:
-        data.delete_user(db_session, user)
+        queries.delete_user(db_session, user)
         db_session.commit()
 
     return {"status": "success"}
@@ -220,10 +227,10 @@ async def remove_user(user: User = Security(get_current_user, scopes=["me"])):
 async def set_submission_active(submission_id: int, enabled: bool,
                                 user: User = Security(get_current_user, scopes=["submission.modify"])):
     with cuwais.database.create_session() as db_session:
-        if not data.submission_is_owned_by_user(db_session, submission_id, user.id):
+        if not queries.submission_is_owned_by_user(db_session, submission_id, user.id):
             return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
-        data.set_submission_enabled(db_session, submission_id, enabled)
+        queries.set_submission_enabled(db_session, submission_id, enabled)
         db_session.commit()
 
     return {"status": "success", "submission_id": submission_id}
@@ -232,7 +239,7 @@ async def set_submission_active(submission_id: int, enabled: bool,
 @app.post('/get_leaderboard', response_class=JSONResponse)
 async def get_leaderboard_data(user: User = Security(get_current_user, scopes=["leaderboard.view"])):
     with cuwais.database.create_session() as db_session:
-        scoreboard = data.get_scoreboard(db_session, user)
+        scoreboard = queries.get_scoreboard(db_session, user)
 
     def transform(item, i):
         trans = {"position": i,
@@ -257,8 +264,8 @@ async def get_leaderboard_data(user: User = Security(get_current_user, scopes=["
 @app.post('/get_submissions', response_class=JSONResponse)
 async def get_submissions_data(user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
-        subs = data.get_all_user_submissions(db_session, user, private=True)
-        current_sub = data.get_current_submission(db_session, user)
+        subs = queries.get_all_user_submissions(db_session, user, private=True)
+        current_sub = queries.get_current_submission(db_session, user)
 
     def transform(sub, i):
         selected = current_sub is not None and sub['submission_id'] == current_sub.id
@@ -310,14 +317,14 @@ async def get_submissions_data(user: User = Security(get_current_user, scopes=["
 @app.post('/get_bots', response_class=JSONResponse)
 async def bots(_: User = Security(get_current_user, scopes=["bots.view"])):
     with cuwais.database.create_session() as db_session:
-        bot_subs = data.get_all_bot_submissions(db_session)
+        bot_subs = queries.get_all_bot_submissions(db_session)
     return [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
 
 
 @app.post('/get_leaderboard_over_time', response_class=JSONResponse)
 async def get_leaderboard_over_time(user: User = Security(get_current_user, scopes=["leaderboard.view"])):
     with cuwais.database.create_session() as db_session:
-        graph = data.get_leaderboard_graph(db_session, user.id)
+        graph = queries.get_leaderboard_graph(db_session, user.id)
 
     return {"status": "success", "data": graph}
 
@@ -326,9 +333,9 @@ async def get_leaderboard_over_time(user: User = Security(get_current_user, scop
 async def get_submission_summary_graph(submission_id: int,
                                        user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
-        if not data.submission_is_owned_by_user(db_session, submission_id, user.id):
+        if not queries.submission_is_owned_by_user(db_session, submission_id, user.id):
             return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
-    summary_data = data.get_submission_summary_data(submission_id)
+    summary_data = queries.get_submission_summary_data(submission_id)
 
     return summary_data

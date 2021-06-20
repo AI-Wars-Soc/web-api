@@ -11,7 +11,7 @@ import requests
 
 from werkzeug.exceptions import abort
 
-from app import data
+from app import queries
 
 session = requests.session()
 cached_session = cachecontrol.CacheControl(session)
@@ -50,6 +50,6 @@ def get_user_from_google_token(db_session, token) -> User:
     google_id = str(id_info['sub'])
     name = str(id_info['name'])
 
-    user = data.make_or_get_google_user(db_session, google_id, name)
+    user = queries.make_or_get_google_user(db_session, google_id, name)
 
     return user
