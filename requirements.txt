@@ -17,3 +17,6 @@ aiofiles
 fastapi-utils
 gunicorn
 gevent
+pyjwt
+pydantic
+inotify

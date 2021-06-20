@@ -12,25 +12,14 @@ from app import repo, nickname
 from app.caching import cached
 
 
-def save_user_id(user_id):
-    pass
-    # session["cuwais_user_id"] = user_id
-
-
-def get_user(db_session) -> Optional[User]:
-    """user_id = session.get("cuwais_user_id")
+def get_user(user_id: Union[str, int]) -> Optional[User]:
     if user_id is None:
         return None
 
     user_id = int(user_id)
 
-    return db_session.query(User).get(user_id)"""
-    return None
-
-
-def remove_user():
-    pass
-    # session.pop("cuwais_user_id", None)
+    with cuwais.database.create_session() as db_session:
+        return db_session.query(User).get(user_id)
 
 
 def generate_nickname(db_session):

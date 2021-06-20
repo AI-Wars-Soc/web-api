@@ -1,54 +1,73 @@
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
+from typing import Optional, List
 
 import cuwais.database
+import jwt
 from cuwais.config import config_file
-from fastapi import FastAPI, HTTPException
+from cuwais.database import User
+from fastapi import FastAPI, HTTPException, Depends, Security
+from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from fastapi_utils.timing import add_timing_middleware
-from starlette.requests import Request
-from starlette.responses import RedirectResponse, HTMLResponse, JSONResponse
-from starlette.staticfiles import StaticFiles
-from starlette.templating import Jinja2Templates
+from jwt import DecodeError
+from pydantic import ValidationError
+from pydantic.main import BaseModel
+from starlette import status
+from starlette.responses import JSONResponse
 
-from app import login, data, nav, repo, caching, subrunner
+from app import login, data, repo
+from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
 
 app = FastAPI()
-# app.mount("/", StaticFiles(directory="/home/web_user/app/static"), name="static")
+if DEBUG and PROFILE:
+    add_timing_middleware(app, record=logging.info, prefix="app", exclude="untimed")
 
-config = dict()
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.WARNING)
 
-templates = Jinja2Templates(directory="templates")
-
-with open("/run/secrets/secret_key") as secrets_file:
-    secret = "".join(secrets_file.readlines())
-    config["SECRET_KEY"] = secret
-config["DEBUG"] = config_file.get("debug")
-
-if config["DEBUG"]:
-    config['PROFILE'] = config_file.get("profile")
-    if config['PROFILE']:
-        add_timing_middleware(app, record=logging.info, prefix="app", exclude="untimed")
-
-config["SESSION_COOKIE_NAME"] = "session_id"
-config["SESSION_PERMANENT"] = False
-config["SESSION_COOKIE_SECURE"] = not config["DEBUG"]
-config["SERVER_NAME"] = config_file.get("front_end.server_name")
-config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=1)
-config["SESSION_TYPE"] = 'redis'
-config["SESSION_REDIS"] = caching.redis_connection
-
-logging.basicConfig(level=logging.DEBUG if config["DEBUG"] else logging.WARNING)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def rich_render_template(page_name, user, **kwargs):
-    return templates.TemplateResponse(page_name + '.html',
-                                      {
-                                          page_name: page_name,
-                                          config_file: config_file.get_all(),
-                                          **nav.extract_session_objs(user, page_name),
-                                          **kwargs
-                                      }
-                                      )
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    scopes: List[str] = []
+
+
+async def get_user(token: str = Depends(oauth2_scheme)):
+    return data.get_user(token)
+
+
+async def get_current_user(
+        security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)
+):
+    if security_scopes.scopes:
+        authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
+    else:
+        authenticate_value = f"Bearer"
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": authenticate_value},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_scopes = payload.get("scopes", [])
+        token_data = TokenData(scopes=token_scopes, username=username)
+    except (DecodeError, ValidationError):
+        raise credentials_exception
+    user = get_user(token_data.username)
+    if user is None:
+        raise credentials_exception
+    for scope in security_scopes.scopes:
+        if scope not in token_data.scopes:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not enough permissions",
+                headers={"WWW-Authenticate": authenticate_value},
+            )
+    return user
 
 
 def abort404():
@@ -57,44 +76,6 @@ def abort404():
 
 def abort400():
     raise HTTPException(status_code=400, detail="Invalid request")
-
-
-def session_bound(f):
-    async def f_new(request: Request, *args, **kwargs):
-        with cuwais.database.create_session() as s:
-            result = await f(request, *args, db_session=s, **kwargs)
-            s.commit()
-        return result
-
-    f_new.__name__ = f.__name__
-    return f_new
-
-
-def logged_in_session_bound(f):
-    @session_bound
-    async def f_new(request: Request, db_session, *args, **kwargs):
-        user = data.get_user(db_session)
-        if user is None:
-            return rich_render_template(
-                'login-required', None
-            )
-        return await f(request, *args, db_session=db_session, user=user, **kwargs)
-
-    # Renaming the function name to appease flask
-    f_new.__name__ = f.__name__
-    return f_new
-
-
-def admin_session_bound(f):
-    @logged_in_session_bound
-    async def f_new(request: Request, user: cuwais.database.User, db_session, *args, **kwargs):
-        if not user.is_admin:
-            abort404()
-        return await f(request, *args, db_session=db_session, user=user, **kwargs)
-
-    # Renaming the function name to appease flask
-    f_new.__name__ = f.__name__
-    return f_new
 
 
 def human_format(num):
@@ -106,46 +87,10 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 
-templates.env.globals['human_format'] = human_format
-
-
 def reason_crash(reason):
     crash_reasons = config_file.get("localisation.crash_reasons")
     default_crash_reason = config_file.get("localisation.default_crash_reason")
     return crash_reasons.get(reason, default_crash_reason)
-
-
-@app.get('/', response_class=HTMLResponse)
-@session_bound
-async def index(request: Request, db_session):
-    user = data.get_user(db_session)
-    if user is not None:
-        return RedirectResponse('/leaderboard')
-    return RedirectResponse('/about')
-
-
-@app.get('/about', response_class=HTMLResponse)
-@session_bound
-async def about(request: Request, db_session):
-    return rich_render_template(
-        'about', data.get_user(db_session)
-    )
-
-
-@app.get('/leaderboard', response_class=HTMLResponse)
-@logged_in_session_bound
-async def leaderboard(request: Request, user, db_session):
-    return rich_render_template(
-        'leaderboard', user
-    )
-
-
-@app.get('/submissions', response_class=HTMLResponse)
-@logged_in_session_bound
-async def submissions(request: Request, user, db_session):
-    return rich_render_template(
-        'submissions', user
-    )
 
 
 def validate_submission_viewable(db_session, user, submission_id):
@@ -158,110 +103,48 @@ def validate_submission_playable(db_session, user, submission_id):
            and data.is_submission_healthy(db_session, submission_id)
 
 
-@app.get('/play/<submission_id>', response_class=HTMLResponse)
-@logged_in_session_bound
-async def play(request: Request, user, db_session, submission_id):
-    if not validate_submission_playable(db_session, user, submission_id):
-        abort404()
+def create_access_token(token_data: dict, expires_delta: timedelta):
+    to_encode = token_data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
+    return encoded_jwt
 
-    game_boards = {"chess": 'games/game_chess'}
-    game = config_file.get("gamemode.id")
-    if game not in game_boards.keys():
-        return game
 
-    return rich_render_template(
-        game_boards[game], user
+def get_scopes(user: User):
+    scopes = ["me", "submission.add", "submission.remove", "submission.modify", "submissions.view", "leaderboard.view"]
+
+    if user.is_admin:
+        scopes.append("bot.add")
+        scopes.append("bot.remove")
+
+    return scopes
+
+
+@app.post('/exchange_google_token', response_class=JSONResponse)
+async def exchange_google_token(google_token: str):
+    with cuwais.database.create_session() as db_session:
+        user = login.get_user_from_google_token(db_session, google_token)
+        db_session.commit()
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        token_data={"sub": user.username, "scopes": get_scopes(user)},
+        expires_delta=access_token_expires,
     )
-
-
-@app.get('/me', response_class=HTMLResponse)
-@logged_in_session_bound
-async def me(request: Request, user, db_session):
-    return rich_render_template(
-        'me', user
-    )
-
-
-@app.get('/admin', response_class=HTMLResponse)
-@admin_session_bound
-async def admin(request: Request, user, db_session):
-    return rich_render_template(
-        'admin', user
-    )
-
-
-@app.get('/bots', response_class=HTMLResponse)
-@admin_session_bound
-async def bots(request: Request, user, db_session):
-    bot_subs = data.get_all_bot_submissions(db_session)
-    bot_subs = [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
-    return rich_render_template(
-        'bots', user, bots=bot_subs
-    )
-
-
-@app.get('/logout', response_class=HTMLResponse)
-async def logout(request: Request):
-    data.remove_user()
-
-    return rich_render_template(
-        'logout', None
-    )
-
-
-@app.get('/enable-js', response_class=HTMLResponse)
-async def please_enable_js(request: Request):
-    return rich_render_template(
-        'please_enable_js', None
-    )
-
-
-@app.post('/api/login_google', response_class=JSONResponse)
-@session_bound
-async def login_google(request: Request, db_session):
-    json_in = await request.json()
-    if 'idtoken' not in json_in:
-        abort400()
-    token = json_in.get('idtoken')
-
-    user = login.get_user_from_google_token(db_session, token)
-    data.save_user_id(user.id)
-
-    return user.to_private_dict()
-
-
-@app.post('/api/play/<submission_id>/connect', response_class=JSONResponse)
-@logged_in_session_bound
-async def play_get_move(request: Request, user, db_session, submission_id):
-    if not validate_submission_playable(db_session, user, submission_id):
-        abort404()
-
-    json_in = await request.json()
-    if 'board' not in json_in:
-        abort400()
-    if 'move' not in json_in:
-        abort400()
-    board = json_in.get('board')
-    move = json_in.get('move')
-
-    next_board = subrunner.get_next_board(board, move)
-
-    return next_board
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 def _make_api_failure(message):
     return {"status": "fail", "message": message}
 
 
-@app.post('/api/add_submission', response_class=JSONResponse)
-@logged_in_session_bound
-async def add_submission(request: Request, user, db_session):
-    json_in = await request.json()
-    if 'url' not in json_in:
-        abort400()
-    url = json_in.get('url')
+@app.post('/add_submission', response_class=JSONResponse)
+async def add_submission(url: str, user: User = Security(get_current_user, scopes=["submission.add"])):
     try:
-        submission_id = data.create_submission(db_session, user, url)
+        with cuwais.database.create_session() as db_session:
+            submission_id = data.create_submission(db_session, user, url)
+            db_session.commit()
     except repo.InvalidGitURL:
         return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
     except repo.AlreadyExistsException:
@@ -276,88 +159,70 @@ async def add_submission(request: Request, user, db_session):
     return {"status": "success", "submission_id": submission_id}
 
 
-@app.post('/api/add_bot', response_class=JSONResponse)
-@admin_session_bound
-async def add_bot(request: Request, user, db_session):
-    json_in = await request.json()
-    if 'url' not in json_in:
-        abort400()
-    url = json_in.get('url')
-    if 'name' not in json_in:
-        abort400()
-    bot_name = json_in.get('name')
-    bot = data.create_bot(db_session, bot_name)
-    db_session.commit()  # TODO: Make this atomic
-    try:
-        submission_id = data.create_submission(db_session, bot, url)
-    except repo.InvalidGitURL:
-        return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
-    except repo.AlreadyExistsException:
-        return _make_api_failure(config_file.get("localisation.git_errors.already-submitted"))
-    except repo.RepoTooBigException:
-        return _make_api_failure(config_file.get("localisation.git_errors.too-large"))
-    except repo.CantCloneException:
-        return _make_api_failure(config_file.get("localisation.git_errors.clone-fail"))
+@app.post('/add_bot', response_class=JSONResponse)
+async def add_bot(name: str, url: str, _: User = Security(get_current_user, scopes=["bot.add"])):
+    with cuwais.database.create_session() as db_session:
+        bot = data.create_bot(db_session, name)
+        db_session.flush()
+        try:
+            submission_id = data.create_submission(db_session, bot, url)
+        except repo.InvalidGitURL:
+            return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
+        except repo.AlreadyExistsException:
+            return _make_api_failure(config_file.get("localisation.git_errors.already-submitted"))
+        except repo.RepoTooBigException:
+            return _make_api_failure(config_file.get("localisation.git_errors.too-large"))
+        except repo.CantCloneException:
+            return _make_api_failure(config_file.get("localisation.git_errors.clone-fail"))
+        db_session.commit()
 
     return {"status": "success", "submission_id": submission_id}
 
 
-@app.post('/api/set_name_visible', response_class=JSONResponse)
-@logged_in_session_bound
-async def set_name_visible(request: Request, user, db_session):
-    json_in = await request.json()
-    if 'visible' not in json_in:
-        abort400()
-    should_be_visible = json_in.get('visible')
-
-    data.set_user_name_visible(db_session, user, should_be_visible)
+@app.post('/set_name_visible', response_class=JSONResponse)
+async def set_name_visible(visible: bool, user: User = Security(get_current_user, scopes=["me"])):
+    with cuwais.database.create_session() as db_session:
+        data.set_user_name_visible(db_session, user, visible)
+        db_session.commit()
 
     return {"status": "success"}
 
 
-@app.post('/api/remove_bot', response_class=JSONResponse)
-@admin_session_bound
-async def remove_bot(request: Request, user, db_session):
-    json_in = await request.json()
-    if 'id' not in json_in:
-        abort400()
-    bot_id = json_in.get('id')
-    data.delete_bot(db_session, bot_id)
+@app.post('/remove_bot', response_class=JSONResponse)
+async def remove_bot(id: str, _: User = Security(get_current_user, scopes=["bot.remove"])):
+    with cuwais.database.create_session() as db_session:
+        data.delete_bot(db_session, id)
+        db_session.commit()
 
     return {"status": "success"}
 
 
-@app.post('/api/remove_user', response_class=JSONResponse)
-@logged_in_session_bound
-async def remove_user(request: Request, user, db_session):
-    data.delete_user(db_session, user)
+@app.post('/remove_user', response_class=JSONResponse)
+async def remove_user(user: User = Security(get_current_user, scopes=["me"])):
+    with cuwais.database.create_session() as db_session:
+        data.delete_user(db_session, user)
+        db_session.commit()
 
     return {"status": "success"}
 
 
-@app.post('/api/set_submission_active', response_class=JSONResponse)
-@logged_in_session_bound
-async def set_submission_active(request: Request, user, db_session):
-    json_in = await request.json()
-    if 'submission_id' not in json_in:
-        abort400()
-    submission_id = json_in.get('submission_id')
-    if 'enabled' not in json_in:
-        abort400()
-    enabled = json_in.get('enabled')
+@app.post('/set_submission_active', response_class=JSONResponse)
+async def set_submission_active(submission_id: int, enabled: bool,
+                                user: User = Security(get_current_user, scopes=["submission.modify"])):
+    with cuwais.database.create_session() as db_session:
+        if not data.submission_is_owned_by_user(db_session, submission_id, user.id):
+            return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
-    if not data.submission_is_owned_by_user(db_session, submission_id, user.id):
-        return _make_api_failure(config_file.get("localisation.submission_access_error"))
-
-    data.set_submission_enabled(db_session, submission_id, enabled)
+        data.set_submission_enabled(db_session, submission_id, enabled)
+        db_session.commit()
 
     return {"status": "success", "submission_id": submission_id}
 
 
-@app.post('/api/get_leaderboard', response_class=JSONResponse)
-@logged_in_session_bound
-async def get_leaderboard_data(request: Request, user, db_session):
-    scoreboard = data.get_scoreboard(db_session, user)
+@app.post('/get_leaderboard', response_class=JSONResponse)
+async def get_leaderboard_data(user: User = Security(get_current_user, scopes=["leaderboard.view"])):
+    with cuwais.database.create_session() as db_session:
+        scoreboard = data.get_scoreboard(db_session, user)
 
     def transform(item, i):
         trans = {"position": i,
@@ -379,11 +244,11 @@ async def get_leaderboard_data(request: Request, user, db_session):
     return {"entries": transformed}
 
 
-@app.post('/api/get_submissions', response_class=JSONResponse)
-@logged_in_session_bound
-async def get_submissions_data(request: Request, user, db_session):
-    subs = data.get_all_user_submissions(db_session, user, private=True)
-    current_sub = data.get_current_submission(db_session, user)
+@app.post('/get_submissions', response_class=JSONResponse)
+async def get_submissions_data(user: User = Security(get_current_user, scopes=["submissions.view"])):
+    with cuwais.database.create_session() as db_session:
+        subs = data.get_all_user_submissions(db_session, user, private=True)
+        current_sub = data.get_current_submission(db_session, user)
 
     def transform(sub, i):
         selected = current_sub is not None and sub['submission_id'] == current_sub.id
@@ -432,24 +297,27 @@ async def get_submissions_data(request: Request, user, db_session):
     return {"submissions": transformed_subs, "no_submissions": len(transformed_subs) == 0}
 
 
-@app.post('/api/get_leaderboard_over_time', response_class=JSONResponse)
-@logged_in_session_bound
-async def get_leaderboard_over_time(request: Request, user, db_session):
-    graph = data.get_leaderboard_graph(db_session, user.id)
+@app.post('/get_bots', response_class=JSONResponse)
+async def bots(_: User = Security(get_current_user, scopes=["bots.view"])):
+    with cuwais.database.create_session() as db_session:
+        bot_subs = data.get_all_bot_submissions(db_session)
+    return [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
+
+
+@app.post('/get_leaderboard_over_time', response_class=JSONResponse)
+async def get_leaderboard_over_time(user: User = Security(get_current_user, scopes=["leaderboard.view"])):
+    with cuwais.database.create_session() as db_session:
+        graph = data.get_leaderboard_graph(db_session, user.id)
 
     return {"status": "success", "data": graph}
 
 
-@app.post('/api/get_submission_summary_graph', response_class=JSONResponse)
-@logged_in_session_bound
-async def get_submission_summary_graph(request: Request, user, db_session):
-    json_in = await request.json()
-    if 'submission_id' not in json_in:
-        abort400()
-    submission_id = json_in.get('submission_id')
-
-    if not data.submission_is_owned_by_user(db_session, submission_id, user.id):
-        return _make_api_failure(config_file.get("localisation.submission_access_error"))
+@app.post('/get_submission_summary_graph', response_class=JSONResponse)
+async def get_submission_summary_graph(submission_id: int,
+                                       user: User = Security(get_current_user, scopes=["submissions.view"])):
+    with cuwais.database.create_session() as db_session:
+        if not data.submission_is_owned_by_user(db_session, submission_id, user.id):
+            return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
     summary_data = data.get_submission_summary_data(submission_id)
 
