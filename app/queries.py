@@ -1,34 +1,25 @@
 import json
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List, Tuple, Dict, Any, Union
 
 import cuwais
 from cuwais.common import Outcome
 from cuwais.config import config_file
 from cuwais.database import User, Submission, Result, Match
-from flask import session
 from sqlalchemy import select, func, and_
 
-from server import repo, nickname
-from server.caching import cached
+from app import repo, nickname
+from app.caching import cached
 
 
-def save_user_id(user_id):
-    session["cuwais_user_id"] = user_id
-
-
-def get_user(db_session) -> Optional[User]:
-    user_id = session.get("cuwais_user_id")
+def get_user(user_id: Union[str, int]) -> Optional[User]:
     if user_id is None:
         return None
 
     user_id = int(user_id)
 
-    return db_session.query(User).get(user_id)
-
-
-def remove_user():
-    session.pop("cuwais_user_id", None)
+    with cuwais.database.create_session() as db_session:
+        return db_session.query(User).get(user_id)
 
 
 def generate_nickname(db_session):
@@ -252,8 +243,37 @@ def create_submission(db_session, user: User, url: str) -> int:
     return submission.id
 
 
-def get_current_submission(db_session, user) -> Optional[Submission]:
-    user_id = user.id
+def is_submission_healthy(db_session, submission_id):
+    submission: Optional[Submission]
+    submission = db_session.query(Submission).get(submission_id)
+
+    if submission is None:
+        return False
+
+    res = db_session.query(
+        Submission
+    ).join(Submission.results) \
+        .filter(Submission.id == submission.id, Result.healthy == True) \
+        .first()
+
+    if res is None:
+        return False
+
+    return True
+
+
+def is_current_submission(db_session, submission_id):
+    submission = db_session.query(Submission).get(submission_id)
+
+    if submission is None:
+        return False
+
+    return get_current_submission(db_session, submission.user_id)
+
+
+def get_current_submission(db_session, user: Union[int, User]) -> Optional[Submission]:
+    user_id = user.id if isinstance(user, User) else int(user)
+
     sub_date = db_session.query(
         func.max(Submission.submission_date).label('maxdate')
     ).join(Submission.results) \
@@ -351,3 +371,4 @@ def delete_user(db_session, user):
         .filter(Submission.user_id == user.id) \
         .delete(synchronize_session='fetch')
     db_session.delete(user)
+

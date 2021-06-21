@@ -11,7 +11,7 @@ debug
 **/.idea
 
 # npm packages
-server/static/node_modules
+app/static/node_modules
 
 # C extensions
 *.so
@@ -138,4 +138,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /debug/database/cuwais.db
-/server/config.yml
+/app/config.yml
