@@ -10,10 +10,6 @@ front_end:
   server_name: "lvh.me"
   access_token_expire_minutes: 300
   access_token_algorithm: "HS256"
-gamemode:
-  id: chess
-  options:
-    chess960: true
 localisation:
   crash_reasons:
     valid-game: "This means nothing went wrong. Your game should have completed normally"
@@ -26,9 +22,3 @@ localisation:
     timeout: "This means your AI ran out of time. Try making moves faster!"
     process-killed: "This means your AI used up too much of the system's resources. Usually this means you used too much memory"
   default_crash_reason: "I'm not sure what this means, so is probably a bug. Sorry!"
-  git_errors:
-    invalid-url: "Invalid GIT URL"
-    already-submitted: "GIT repo already submitted"
-    too-large: "GIT repo is too large!"
-    clone-fail: "Failed to clone! :("
-  submission_access_error: "You do not own that submission!"
