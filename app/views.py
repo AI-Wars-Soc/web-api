@@ -184,7 +184,7 @@ async def get_navbar(data: NavBarData,
 
 
 @app.post('/get_me', response_class=JSONResponse)
-async def get_me(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
+async def get_me(user: Optional[User] = Security(get_current_user, scopes=["me"])):
     return user.to_private_dict()
 
 

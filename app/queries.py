@@ -48,7 +48,7 @@ def make_or_get_google_user(db_session, google_id, name) -> User:
 
 
 def set_user_name_visible(db_session, user: User, visible: bool):
-    user.display_real_name = visible
+    db_session.query(User).get(user.id).display_real_name = visible
 
 
 def make_scoreboard_entry(user, score: Optional[int], init: int, outcomes: dict):
@@ -370,5 +370,5 @@ def delete_user(db_session, user):
     db_session.query(Submission) \
         .filter(Submission.user_id == user.id) \
         .delete(synchronize_session='fetch')
-    db_session.delete(user)
+    db_session.delete(db_session.query(User).get(user.id))
 
