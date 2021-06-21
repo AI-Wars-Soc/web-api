@@ -6,14 +6,14 @@ import cuwais.database
 import jwt
 from cuwais.config import config_file
 from cuwais.database import User
-from fastapi import FastAPI, HTTPException, Depends, Security
-from fastapi.security import OAuth2PasswordBearer, SecurityScopes
+from fastapi import FastAPI, HTTPException, Security, Cookie
+from fastapi.security import SecurityScopes
 from fastapi_utils.timing import add_timing_middleware
 from jwt import DecodeError
 from pydantic import ValidationError
 from pydantic.main import BaseModel
 from starlette import status
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from app import login, queries, repo, nav
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
@@ -24,10 +24,6 @@ if DEBUG and PROFILE:
 
 logging.basicConfig(level=logging.DEBUG if DEBUG else logging.WARNING)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-oauth2_optional_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
-
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -35,14 +31,24 @@ class TokenData(BaseModel):
 
 
 async def get_current_user_or_none(security_scopes: SecurityScopes,
-                                   token: Optional[str] = Depends(oauth2_optional_scheme)):
-    if token is None:
-        return None
+                                   response: Response,
+                                   session_jwt: Optional[str] = Cookie(None),
+                                   log_out: Optional[str] = Cookie(None)):
+    return await _get_current_user_impl(security_scopes, response, session_jwt, log_out, raise_on_none=False)
 
-    return await get_current_user(security_scopes, token)
+
+async def get_current_user(security_scopes: SecurityScopes,
+                           response: Response,
+                           session_jwt: Optional[str] = Cookie(None),
+                           log_out: Optional[str] = Cookie(None)):
+    return await _get_current_user_impl(security_scopes, response, session_jwt, log_out, raise_on_none=True)
 
 
-async def get_current_user(security_scopes: SecurityScopes, token: str = Depends(oauth2_scheme)):
+async def _get_current_user_impl(security_scopes: SecurityScopes,
+                                 response: Response,
+                                 session_jwt: Optional[str] = Cookie(None),
+                                 log_out: Optional[str] = Cookie(None),
+                                 raise_on_none: bool = True):
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -52,18 +58,33 @@ async def get_current_user(security_scopes: SecurityScopes, token: str = Depends
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": authenticate_value},
     )
+
+    def on_none():
+        response.delete_cookie("session_jwt")
+        if raise_on_none:
+            raise credentials_exception
+        else:
+            return None
+
+    if log_out is not None:
+        response.delete_cookie("log_out")
+        return on_none()
+
+    if session_jwt is None:
+        return on_none()
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
+        payload = jwt.decode(session_jwt, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
-            raise credentials_exception
+            return on_none()
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
     except (DecodeError, ValidationError):
-        raise credentials_exception
+        return on_none()
     user = queries.get_user(token_data.username)
     if user is None:
-        raise credentials_exception
+        return on_none()
     for scope in security_scopes.scopes:
         if scope not in token_data.scopes:
             raise HTTPException(
@@ -130,20 +151,22 @@ class GoogleTokenData(BaseModel):
 
 
 @app.post('/exchange_google_token', response_class=JSONResponse)
-async def exchange_google_token(data: GoogleTokenData):
+async def exchange_google_token(data: GoogleTokenData, response: Response):
     with cuwais.database.create_session() as db_session:
         user = login.get_user_from_google_token(db_session, data.google_token)
         db_session.commit()
 
         user_id = user.id
         scopes = get_scopes(user)
+        user_dict = user.to_private_dict()
 
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         token_data={"sub": user_id, "scopes": scopes},
         expires_delta=access_token_expires,
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    response.set_cookie("session_jwt", access_token, httponly=True, samesite="strict", secure=not DEBUG)
+    return {"user": user_dict}
 
 
 def _make_api_failure(message):
@@ -160,11 +183,15 @@ async def get_navbar(data: NavBarData,
     return nav.get_nav(user, data.page_name)
 
 
+class AddSubmissionData(BaseModel):
+    url: str
+
+
 @app.post('/add_submission', response_class=JSONResponse)
-async def add_submission(url: str, user: User = Security(get_current_user, scopes=["submission.add"])):
+async def add_submission(data: AddSubmissionData, user: User = Security(get_current_user, scopes=["submission.add"])):
     try:
         with cuwais.database.create_session() as db_session:
-            submission_id = queries.create_submission(db_session, user, url)
+            submission_id = queries.create_submission(db_session, user, data.url)
             db_session.commit()
     except repo.InvalidGitURL:
         return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
@@ -180,13 +207,18 @@ async def add_submission(url: str, user: User = Security(get_current_user, scope
     return {"status": "success", "submission_id": submission_id}
 
 
+class BotData(BaseModel):
+    name: str
+    url: str
+
+
 @app.post('/add_bot', response_class=JSONResponse)
-async def add_bot(name: str, url: str, _: User = Security(get_current_user, scopes=["bot.add"])):
+async def add_bot(data: BotData, _: User = Security(get_current_user, scopes=["bot.add"])):
     with cuwais.database.create_session() as db_session:
-        bot = queries.create_bot(db_session, name)
+        bot = queries.create_bot(db_session, data.name)
         db_session.flush()
         try:
-            submission_id = queries.create_submission(db_session, bot, url)
+            submission_id = queries.create_submission(db_session, bot, data.url)
         except repo.InvalidGitURL:
             return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
         except repo.AlreadyExistsException:
@@ -200,19 +232,27 @@ async def add_bot(name: str, url: str, _: User = Security(get_current_user, scop
     return {"status": "success", "submission_id": submission_id}
 
 
+class NameVisibleData(BaseModel):
+    visible: bool
+
+
 @app.post('/set_name_visible', response_class=JSONResponse)
-async def set_name_visible(visible: bool, user: User = Security(get_current_user, scopes=["me"])):
+async def set_name_visible(data: NameVisibleData, user: User = Security(get_current_user, scopes=["me"])):
     with cuwais.database.create_session() as db_session:
-        queries.set_user_name_visible(db_session, user, visible)
+        queries.set_user_name_visible(db_session, user, data.visible)
         db_session.commit()
 
     return {"status": "success"}
 
 
+class RemoveBotData(BaseModel):
+    bot_id: str
+
+
 @app.post('/remove_bot', response_class=JSONResponse)
-async def remove_bot(id: str, _: User = Security(get_current_user, scopes=["bot.remove"])):
+async def remove_bot(data: RemoveBotData, _: User = Security(get_current_user, scopes=["bot.remove"])):
     with cuwais.database.create_session() as db_session:
-        queries.delete_bot(db_session, id)
+        queries.delete_bot(db_session, data.bot_id)
         db_session.commit()
 
     return {"status": "success"}
@@ -227,17 +267,22 @@ async def remove_user(user: User = Security(get_current_user, scopes=["me"])):
     return {"status": "success"}
 
 
+class SubmissionActiveData(BaseModel):
+    submission_id: int
+    enabled: bool
+
+
 @app.post('/set_submission_active', response_class=JSONResponse)
-async def set_submission_active(submission_id: int, enabled: bool,
+async def set_submission_active(data: SubmissionActiveData,
                                 user: User = Security(get_current_user, scopes=["submission.modify"])):
     with cuwais.database.create_session() as db_session:
-        if not queries.submission_is_owned_by_user(db_session, submission_id, user.id):
+        if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
             return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
-        queries.set_submission_enabled(db_session, submission_id, enabled)
+        queries.set_submission_enabled(db_session, data.submission_id, data.enabled)
         db_session.commit()
 
-    return {"status": "success", "submission_id": submission_id}
+    return {"status": "success", "submission_id": data.submission_id}
 
 
 @app.post('/get_leaderboard', response_class=JSONResponse)
@@ -333,13 +378,17 @@ async def get_leaderboard_over_time(user: User = Security(get_current_user, scop
     return {"status": "success", "data": graph}
 
 
+class SubmissionRequestData(BaseModel):
+    submission_id: int
+
+
 @app.post('/get_submission_summary_graph', response_class=JSONResponse)
-async def get_submission_summary_graph(submission_id: int,
+async def get_submission_summary_graph(data: SubmissionRequestData,
                                        user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
-        if not queries.submission_is_owned_by_user(db_session, submission_id, user.id):
+        if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
             return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
-    summary_data = queries.get_submission_summary_data(submission_id)
+    summary_data = queries.get_submission_summary_data(data.submission_id)
 
     return summary_data
