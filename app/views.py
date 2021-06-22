@@ -9,7 +9,7 @@ from cuwais.database import User
 from fastapi import FastAPI, HTTPException, Security, Cookie
 from fastapi.security import SecurityScopes
 from fastapi_utils.timing import add_timing_middleware
-from jwt import DecodeError
+from jwt import DecodeError, InvalidTokenError
 from pydantic import ValidationError
 from pydantic.main import BaseModel
 from starlette import status
@@ -80,7 +80,7 @@ async def _get_current_user_impl(security_scopes: SecurityScopes,
             return on_none()
         token_scopes = payload.get("scopes", [])
         token_data = TokenData(scopes=token_scopes, username=username)
-    except (DecodeError, ValidationError):
+    except (DecodeError, ValidationError, InvalidTokenError):
         return on_none()
     user = queries.get_user(token_data.username)
     if user is None:
