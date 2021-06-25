@@ -94,6 +94,11 @@ def download_repository(user_id: int, url: str) -> str:
     return files_hash
 
 
+def remove_submission_archive(files_hash):
+    archive_dir = Path(GIT_BASE_DIR, files_hash + ".tar")
+    os.remove(archive_dir)
+
+
 def get_dir_size_bytes(path) -> int:
     total_size = 0
     for dir_path, _, filenames in os.walk(path):

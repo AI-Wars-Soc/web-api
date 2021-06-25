@@ -60,7 +60,9 @@ async def _get_current_user_impl(security_scopes: SecurityScopes,
     )
 
     def on_none():
-        response.delete_cookie("session_jwt")
+        if session_jwt is not None:
+            response.delete_cookie("session_jwt")
+
         if raise_on_none:
             raise credentials_exception
         else:
@@ -173,14 +175,9 @@ def _make_api_failure(message):
     return {"status": "fail", "message": message}
 
 
-class NavBarData(BaseModel):
-    page_name: str
-
-
 @app.post('/get_navbar', response_class=JSONResponse)
-async def get_navbar(data: NavBarData,
-                     user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
-    return nav.get_nav(user, data.page_name)
+async def get_navbar(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
+    return nav.get_nav(user)
 
 
 @app.post('/get_me', response_class=JSONResponse)

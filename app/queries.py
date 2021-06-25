@@ -364,6 +364,12 @@ def delete_bot(db_session, bot_id):
 
 
 def delete_user(db_session, user):
+    # Get submission hashes
+    submissions = db_session.query(Submission) \
+        .filter(Submission.user_id == user.id).all()
+    submission_hashes = [s.files_hash for s in submissions]
+
+    # Delete all data
     db_session.query(Result) \
         .filter(Result.submission_id == Submission.id, Submission.user_id == user.id) \
         .delete(synchronize_session='fetch')
@@ -371,4 +377,10 @@ def delete_user(db_session, user):
         .filter(Submission.user_id == user.id) \
         .delete(synchronize_session='fetch')
     db_session.delete(db_session.query(User).get(user.id))
+    db_session.commit()
+
+    # Delete archives
+    for sub_hash in submission_hashes:
+        repo.remove_submission_archive(sub_hash)
+
 
