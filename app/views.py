@@ -189,7 +189,7 @@ async def get_navbar(user: Optional[User] = Security(get_current_user_or_none, s
     )
 
 
-@app.post('/get_login_modal_data', response_class=JSONResponse)
+@app.post('/get_google_login_data', response_class=JSONResponse)
 async def get_login_modal_data():
     return {'clientId': config_file.get("google_client_id"), 'hostedDomain': config_file.get("allowed_email_domain")}
 
