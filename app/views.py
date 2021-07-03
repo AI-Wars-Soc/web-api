@@ -180,6 +180,11 @@ async def get_navbar(user: Optional[User] = Security(get_current_user_or_none, s
     return nav.get_nav(user)
 
 
+@app.post('/get_login_modal_data', response_class=JSONResponse)
+async def get_login_modal_data():
+    return {'clientId': config_file.get("google_client_id"), 'hostedDomain': config_file.get("allowed_email_domain")}
+
+
 @app.post('/get_me', response_class=JSONResponse)
 async def get_me(user: Optional[User] = Security(get_current_user, scopes=["me"])):
     return user.to_private_dict()
