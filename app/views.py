@@ -15,7 +15,7 @@ from pydantic.main import BaseModel
 from starlette import status
 from starlette.responses import JSONResponse, Response
 
-from app import login, queries, repo, nav
+from app import login, queries, repo
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
 
 app = FastAPI(root_path="/api")
@@ -177,7 +177,16 @@ def _make_api_failure(message):
 
 @app.post('/get_navbar', response_class=JSONResponse)
 async def get_navbar(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
-    return nav.get_nav(user)
+    places = ['about']
+    if user is not None:
+        places += ['leaderboard', 'submissions', 'you', 'logout']
+    else:
+        places += ['login']
+
+    return dict(
+        soc_name=config_file.get("soc_name").upper(),
+        accessible=places
+    )
 
 
 @app.post('/get_login_modal_data', response_class=JSONResponse)
