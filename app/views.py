@@ -175,11 +175,18 @@ def _make_api_failure(message):
     return {"status": "fail", "message": message}
 
 
-@app.post('/get_navbar', response_class=JSONResponse)
-async def get_navbar(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
+@app.post('/get_user', response_class=JSONResponse)
+async def get_user(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
+    return user.to_private_dict()
+
+
+@app.post('/get_accessible_navbar', response_class=JSONResponse)
+async def get_accessible_navbar(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
     places = ['about']
     if user is not None:
         places += ['leaderboard', 'submissions', 'you', 'logout']
+        if user.is_admin:
+            places += ['admin']
     else:
         places += ['login']
 
