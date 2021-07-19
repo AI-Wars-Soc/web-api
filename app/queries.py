@@ -7,6 +7,7 @@ from cuwais.common import Outcome
 from cuwais.config import config_file
 from cuwais.database import User, Submission, Result, Match
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import Session
 
 from app import repo, nickname
 from app.caching import cached
@@ -314,7 +315,7 @@ def set_submission_enabled(db_session, submission_id: int, enabled: bool):
 
 
 @cached(ttl=300)
-def get_submission_summary_data(submission_id: int):
+def get_submission_win_loss_data(submission_id: int):
     with cuwais.database.create_session() as db_session:
         vs = {}
         for outcome in Outcome:
@@ -384,3 +385,9 @@ def delete_user(db_session, user):
         repo.remove_submission_archive(sub_hash)
 
 
+def is_submission_testing(db_session: Session, submission_id):
+    untested = db_session.query(Submission.id) \
+        .outerjoin(Submission.results) \
+        .filter(Result.id == None, Submission.id == submission_id) \
+        .all()
+    return len(untested) == 1

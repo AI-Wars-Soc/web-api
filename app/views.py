@@ -177,6 +177,8 @@ def _make_api_failure(message):
 
 @app.post('/get_user', response_class=JSONResponse)
 async def get_user(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
+    if user is None:
+        return None
     return user.to_private_dict()
 
 
@@ -199,11 +201,6 @@ async def get_accessible_navbar(user: Optional[User] = Security(get_current_user
 @app.post('/get_google_login_data', response_class=JSONResponse)
 async def get_login_modal_data():
     return {'clientId': config_file.get("google_client_id"), 'hostedDomain': config_file.get("allowed_email_domain")}
-
-
-@app.post('/get_me', response_class=JSONResponse)
-async def get_me(user: Optional[User] = Security(get_current_user, scopes=["me"])):
-    return user.to_private_dict()
 
 
 class AddSubmissionData(BaseModel):
@@ -342,32 +339,13 @@ async def get_submissions_data(user: User = Security(get_current_user, scopes=["
     def transform(sub, i):
         selected = current_sub is not None and sub['submission_id'] == current_sub.id
 
-        class_names = []
-        if sub['active']:
-            class_names.append('submission-entry-active')
-        if sub['tested'] and not sub['healthy']:
-            class_names.append('invalid-stripes')
-        if not sub['tested']:
-            class_names.append('testing-stripes')
-        if selected:
-            class_names.append('submission-entry-selected')
-
-        trans = {"div_class": " ".join(class_names),
-                 "subdiv_class":
-                     'submission-entry-testing' if not sub['tested']
-                     else 'submission-entry-invalid' if not sub['healthy']
-                     else "",
-                 "index": i,
+        trans = {"index": i,
                  "submission_id": sub["submission_id"],
                  "submission_date": sub["submission_date"].strftime('%d %b at %I:%M %p'),
                  "active": sub['active'],
                  "healthy": sub['healthy'],
-                 "crashed": sub['tested'] and not sub['healthy'],
-                 "status": "Selected" if selected
-                 else "Testing" if not sub['tested']
-                 else "Invalid" if not sub['healthy']
-                 else "",
-                 "enabled_status": "Enabled" if sub['active'] else "Disabled",
+                 "tested": sub['tested'],
+                 "selected": selected,
                  }
 
         crash = sub['crash']
@@ -375,7 +353,6 @@ async def get_submissions_data(user: User = Security(get_current_user, scopes=["
             trans = {**trans,
                      "crash_reason": crash['result'].replace("-", " ").capitalize(),
                      "crash_reason_long": reason_crash(crash['result']),
-                     "no_print": len(crash['prints']) == 0,
                      "prints": crash['prints']}
 
         return trans
@@ -383,7 +360,7 @@ async def get_submissions_data(user: User = Security(get_current_user, scopes=["
     transformed_subs = [transform(sub, len(subs) - i)
                         for i, sub in enumerate(subs)]
 
-    return {"submissions": transformed_subs, "no_submissions": len(transformed_subs) == 0}
+    return {"submissions": transformed_subs}
 
 
 @app.post('/get_bots', response_class=JSONResponse)
@@ -405,13 +382,25 @@ class SubmissionRequestData(BaseModel):
     submission_id: int
 
 
-@app.post('/get_submission_summary_graph', response_class=JSONResponse)
-async def get_submission_summary_graph(data: SubmissionRequestData,
+@app.post('/get_submission_win_loss_data', response_class=JSONResponse)
+async def get_submission_win_loss_data(data: SubmissionRequestData,
                                        user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
         if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
             return _make_api_failure(config_file.get("localisation.submission_access_error"))
 
-    summary_data = queries.get_submission_summary_data(data.submission_id)
+    summary_data = queries.get_submission_win_loss_data(data.submission_id)
+
+    return summary_data
+
+
+@app.post('/is_submission_testing', response_class=JSONResponse)
+async def is_submission_testing(data: SubmissionRequestData,
+                                user: User = Security(get_current_user, scopes=["submissions.view"])):
+    with cuwais.database.create_session() as db_session:
+        if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
+            return _make_api_failure(config_file.get("localisation.submission_access_error"))
+
+        summary_data = queries.is_submission_testing(db_session, data.submission_id)
 
     return summary_data
