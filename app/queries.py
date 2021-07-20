@@ -385,6 +385,22 @@ def delete_user(db_session, user):
         repo.remove_submission_archive(sub_hash)
 
 
+def delete_submission(db_session: Session, submission_id: int):
+    # Get submission hashes
+    submission: Submission = db_session.query(Submission).get(submission_id)
+    submission_hash = submission.files_hash
+
+    # Delete all data
+    db_session.query(Result) \
+        .filter(Submission.id == submission_id) \
+        .delete(synchronize_session='fetch')
+    db_session.delete(db_session.query(Submission).get(submission_id))
+    db_session.commit()
+
+    # Delete archives
+    repo.remove_submission_archive(submission_hash)
+
+
 def is_submission_testing(db_session: Session, submission_id):
     untested = db_session.query(Submission.id) \
         .outerjoin(Submission.results) \

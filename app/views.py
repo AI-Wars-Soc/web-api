@@ -33,22 +33,30 @@ class TokenData(BaseModel):
 async def get_current_user_or_none(security_scopes: SecurityScopes,
                                    response: Response,
                                    session_jwt: Optional[str] = Cookie(None),
-                                   log_out: Optional[str] = Cookie(None)):
+                                   log_out: Optional[str] = Cookie(None)) -> Optional[User]:
+    return (await _get_current_user_impl(security_scopes, response, session_jwt, log_out, raise_on_none=False))[0]
+
+
+async def get_current_user_and_timeout_or_none(security_scopes: SecurityScopes,
+                                               response: Response,
+                                               session_jwt: Optional[str] = Cookie(None),
+                                               log_out: Optional[str] = Cookie(None)) -> (Optional[User], int):
     return await _get_current_user_impl(security_scopes, response, session_jwt, log_out, raise_on_none=False)
 
 
 async def get_current_user(security_scopes: SecurityScopes,
                            response: Response,
                            session_jwt: Optional[str] = Cookie(None),
-                           log_out: Optional[str] = Cookie(None)):
-    return await _get_current_user_impl(security_scopes, response, session_jwt, log_out, raise_on_none=True)
+                           log_out: Optional[str] = Cookie(None)) -> User:
+    user, exp = await _get_current_user_impl(security_scopes, response, session_jwt, log_out, raise_on_none=True)
+    return user
 
 
 async def _get_current_user_impl(security_scopes: SecurityScopes,
                                  response: Response,
                                  session_jwt: Optional[str] = Cookie(None),
                                  log_out: Optional[str] = Cookie(None),
-                                 raise_on_none: bool = True):
+                                 raise_on_none: bool = True) -> (Optional[User], int):
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
     else:
@@ -66,7 +74,7 @@ async def _get_current_user_impl(security_scopes: SecurityScopes,
         if raise_on_none:
             raise credentials_exception
         else:
-            return None
+            return None, -1
 
     if log_out is not None:
         response.delete_cookie("log_out")
@@ -78,6 +86,7 @@ async def _get_current_user_impl(security_scopes: SecurityScopes,
     try:
         payload = jwt.decode(session_jwt, SECRET_KEY, algorithms=[ACCESS_TOKEN_ALGORITHM])
         username: str = payload.get("sub")
+        exp: int = payload.get("exp")
         if username is None:
             return on_none()
         token_scopes = payload.get("scopes", [])
@@ -94,7 +103,7 @@ async def _get_current_user_impl(security_scopes: SecurityScopes,
                 detail="Not enough permissions",
                 headers={"WWW-Authenticate": authenticate_value},
             )
-    return user
+    return user, exp
 
 
 def abort404():
@@ -168,7 +177,7 @@ async def exchange_google_token(data: GoogleTokenData, response: Response):
         expires_delta=access_token_expires,
     )
     response.set_cookie("session_jwt", access_token, httponly=True, samesite="strict", secure=not DEBUG)
-    return {"user": user_dict}
+    return {"user": user_dict, "expiry_minutes": ACCESS_TOKEN_EXPIRE_MINUTES}
 
 
 def _make_api_failure(message):
@@ -176,10 +185,10 @@ def _make_api_failure(message):
 
 
 @app.post('/get_user', response_class=JSONResponse)
-async def get_user(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
-    if user is None:
-        return None
-    return user.to_private_dict()
+async def get_user(data: (Optional[User], int) = Security(get_current_user_and_timeout_or_none, scopes=["me"])):
+    if data[0] is None:
+        return {"user": None, "expiry": -1}
+    return {"user": data[0].to_private_dict(), "expiry": data[1]}
 
 
 @app.post('/get_accessible_navbar', response_class=JSONResponse)
@@ -404,3 +413,15 @@ async def is_submission_testing(data: SubmissionRequestData,
         summary_data = queries.is_submission_testing(db_session, data.submission_id)
 
     return summary_data
+
+
+@app.post('/delete_submission', response_class=JSONResponse)
+async def delete_submission(data: SubmissionRequestData,
+                                user: User = Security(get_current_user, scopes=["submissions.view"])):
+    with cuwais.database.create_session() as db_session:
+        if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
+            return _make_api_failure(config_file.get("localisation.submission_access_error"))
+
+        queries.delete_submission(db_session, data.submission_id)
+
+    return {"status": "success"}
