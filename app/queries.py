@@ -168,8 +168,8 @@ def get_leaderboard_graph(db_session, querying_user_id):
             del deltas[other_user_id]
             continue
 
-        users[other_user_id] = user.to_public_dict()
-        users[other_user_id]["is_you"] = other_user_id == querying_user_id
+        users[str(other_user_id)] = user.to_public_dict()
+        users[str(other_user_id)]["is_you"] = other_user_id == querying_user_id
 
     return {"users": users, "deltas": deltas, "initial_score": init}
 
@@ -392,7 +392,7 @@ def delete_submission(db_session: Session, submission_id: int):
 
     # Delete all data
     db_session.query(Result) \
-        .filter(Submission.id == submission_id) \
+        .filter(Result.submission_id == submission_id) \
         .delete(synchronize_session='fetch')
     db_session.delete(db_session.query(Submission).get(submission_id))
     db_session.commit()

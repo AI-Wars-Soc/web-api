@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta, datetime
+from enum import Enum
 from typing import Optional, List
 
 import cuwais.database
@@ -28,6 +29,30 @@ logging.basicConfig(level=logging.DEBUG if DEBUG else logging.WARNING)
 class TokenData(BaseModel):
     username: Optional[str] = None
     scopes: List[str] = []
+
+
+class Status(Enum):
+    SUCCESS = "success"
+    RESENT = "resent"
+    FAIL = "fail"
+
+
+def make_response(state: Status, data=None):
+    if data is None:
+        data = {}
+    return {"status": str(state.value), "data": data}
+
+
+def make_success_response(data=None):
+    return make_response(Status.SUCCESS, data)
+
+
+def make_resent_response():
+    return make_response(Status.RESENT)
+
+
+def make_fail_response(message):
+    return make_response(Status.FAIL, {"message": message})
 
 
 async def get_current_user_or_none(security_scopes: SecurityScopes,
@@ -177,39 +202,38 @@ async def exchange_google_token(data: GoogleTokenData, response: Response):
         expires_delta=access_token_expires,
     )
     response.set_cookie("session_jwt", access_token, httponly=True, samesite="strict", secure=not DEBUG)
-    return {"user": user_dict, "expiry_minutes": ACCESS_TOKEN_EXPIRE_MINUTES}
-
-
-def _make_api_failure(message):
-    return {"status": "fail", "message": message}
+    return make_success_response({"user": user_dict, "expiry_minutes": ACCESS_TOKEN_EXPIRE_MINUTES})
 
 
 @app.post('/get_user', response_class=JSONResponse)
 async def get_user(data: (Optional[User], int) = Security(get_current_user_and_timeout_or_none, scopes=["me"])):
     if data[0] is None:
-        return {"user": None, "expiry": -1}
-    return {"user": data[0].to_private_dict(), "expiry": data[1]}
+        return make_success_response({"user": None, "expiry": -1})
+    return make_success_response({"user": data[0].to_private_dict(), "expiry": data[1]})
 
 
 @app.post('/get_accessible_navbar', response_class=JSONResponse)
 async def get_accessible_navbar(user: Optional[User] = Security(get_current_user_or_none, scopes=["me"])):
     places = ['about']
     if user is not None:
-        places += ['leaderboard', 'submissions', 'you', 'logout']
+        places += ['leaderboard', 'submissions', 'me', 'logout']
         if user.is_admin:
             places += ['admin']
     else:
         places += ['login']
 
-    return dict(
-        soc_name=config_file.get("soc_name").upper(),
-        accessible=places
-    )
+    return make_success_response({
+        "soc_name": config_file.get("soc_name").upper(),
+        "accessible": places
+    })
 
 
 @app.post('/get_google_login_data', response_class=JSONResponse)
 async def get_login_modal_data():
-    return {'clientId': config_file.get("google_client_id"), 'hostedDomain': config_file.get("allowed_email_domain")}
+    return make_success_response({
+        'clientId': config_file.get("google_client_id"),
+        'hostedDomain': config_file.get("allowed_email_domain")
+    })
 
 
 class AddSubmissionData(BaseModel):
@@ -223,17 +247,17 @@ async def add_submission(data: AddSubmissionData, user: User = Security(get_curr
             submission_id = queries.create_submission(db_session, user, data.url)
             db_session.commit()
     except repo.InvalidGitURL:
-        return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
+        return make_fail_response(config_file.get("localisation.git_errors.invalid-url"))
     except repo.AlreadyExistsException:
-        return _make_api_failure(config_file.get("localisation.git_errors.already-submitted"))
+        return make_fail_response(config_file.get("localisation.git_errors.already-submitted"))
     except repo.RepoTooBigException:
-        return _make_api_failure(config_file.get("localisation.git_errors.too-large"))
+        return make_fail_response(config_file.get("localisation.git_errors.too-large"))
     except repo.CantCloneException:
-        return _make_api_failure(config_file.get("localisation.git_errors.clone-fail"))
+        return make_fail_response(config_file.get("localisation.git_errors.clone-fail"))
     except repo.AlreadyCloningException:
-        return {"status": "resent"}
+        return make_resent_response()
 
-    return {"status": "success", "submission_id": submission_id}
+    return make_success_response({"submission_id": submission_id})
 
 
 class BotData(BaseModel):
@@ -249,16 +273,16 @@ async def add_bot(data: BotData, _: User = Security(get_current_user, scopes=["b
         try:
             submission_id = queries.create_submission(db_session, bot, data.url)
         except repo.InvalidGitURL:
-            return _make_api_failure(config_file.get("localisation.git_errors.invalid-url"))
+            return make_fail_response(config_file.get("localisation.git_errors.invalid-url"))
         except repo.AlreadyExistsException:
-            return _make_api_failure(config_file.get("localisation.git_errors.already-submitted"))
+            return make_fail_response(config_file.get("localisation.git_errors.already-submitted"))
         except repo.RepoTooBigException:
-            return _make_api_failure(config_file.get("localisation.git_errors.too-large"))
+            return make_fail_response(config_file.get("localisation.git_errors.too-large"))
         except repo.CantCloneException:
-            return _make_api_failure(config_file.get("localisation.git_errors.clone-fail"))
+            return make_fail_response(config_file.get("localisation.git_errors.clone-fail"))
         db_session.commit()
 
-    return {"status": "success", "submission_id": submission_id}
+    return make_success_response({"submission_id": submission_id})
 
 
 class NameVisibleData(BaseModel):
@@ -271,7 +295,7 @@ async def set_name_visible(data: NameVisibleData, user: User = Security(get_curr
         queries.set_user_name_visible(db_session, user, data.visible)
         db_session.commit()
 
-    return {"status": "success"}
+    return make_success_response()
 
 
 class RemoveBotData(BaseModel):
@@ -284,7 +308,7 @@ async def remove_bot(data: RemoveBotData, _: User = Security(get_current_user, s
         queries.delete_bot(db_session, data.bot_id)
         db_session.commit()
 
-    return {"status": "success"}
+    return make_success_response()
 
 
 @app.post('/remove_user', response_class=JSONResponse)
@@ -293,7 +317,7 @@ async def remove_user(user: User = Security(get_current_user, scopes=["me"])):
         queries.delete_user(db_session, user)
         db_session.commit()
 
-    return {"status": "success"}
+    return make_success_response()
 
 
 class SubmissionActiveData(BaseModel):
@@ -306,12 +330,12 @@ async def set_submission_active(data: SubmissionActiveData,
                                 user: User = Security(get_current_user, scopes=["submission.modify"])):
     with cuwais.database.create_session() as db_session:
         if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
-            return _make_api_failure(config_file.get("localisation.submission_access_error"))
+            return make_fail_response(config_file.get("localisation.submission_access_error"))
 
         queries.set_submission_enabled(db_session, data.submission_id, data.enabled)
         db_session.commit()
 
-    return {"status": "success", "submission_id": data.submission_id}
+    return make_success_response({"submission_id": data.submission_id})
 
 
 @app.post('/get_leaderboard', response_class=JSONResponse)
@@ -336,7 +360,7 @@ async def get_leaderboard_data(user: User = Security(get_current_user, scopes=["
 
     transformed = [transform(sub, i + 1) for i, sub in enumerate(scoreboard)]
 
-    return {"entries": transformed}
+    return make_success_response({"entries": transformed})
 
 
 @app.post('/get_submissions', response_class=JSONResponse)
@@ -369,14 +393,16 @@ async def get_submissions_data(user: User = Security(get_current_user, scopes=["
     transformed_subs = [transform(sub, len(subs) - i)
                         for i, sub in enumerate(subs)]
 
-    return {"submissions": transformed_subs}
+    return make_success_response({"submissions": transformed_subs})
 
 
 @app.post('/get_bots', response_class=JSONResponse)
 async def bots(_: User = Security(get_current_user, scopes=["bots.view"])):
     with cuwais.database.create_session() as db_session:
         bot_subs = queries.get_all_bot_submissions(db_session)
-    return [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
+
+    transformed_bots = [{"id": bot.id, "name": bot.display_name, "date": sub.submission_date} for bot, sub in bot_subs]
+    return make_success_response({"bots": transformed_bots})
 
 
 @app.post('/get_leaderboard_over_time', response_class=JSONResponse)
@@ -384,7 +410,7 @@ async def get_leaderboard_over_time(user: User = Security(get_current_user, scop
     with cuwais.database.create_session() as db_session:
         graph = queries.get_leaderboard_graph(db_session, user.id)
 
-    return {"status": "success", "data": graph}
+    return make_success_response(graph)
 
 
 class SubmissionRequestData(BaseModel):
@@ -396,11 +422,11 @@ async def get_submission_win_loss_data(data: SubmissionRequestData,
                                        user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
         if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
-            return _make_api_failure(config_file.get("localisation.submission_access_error"))
+            return make_fail_response(config_file.get("localisation.submission_access_error"))
 
     summary_data = queries.get_submission_win_loss_data(data.submission_id)
 
-    return summary_data
+    return make_success_response(summary_data)
 
 
 @app.post('/is_submission_testing', response_class=JSONResponse)
@@ -408,20 +434,20 @@ async def is_submission_testing(data: SubmissionRequestData,
                                 user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
         if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
-            return _make_api_failure(config_file.get("localisation.submission_access_error"))
+            return make_fail_response(config_file.get("localisation.submission_access_error"))
 
-        summary_data = queries.is_submission_testing(db_session, data.submission_id)
+        is_testing = queries.is_submission_testing(db_session, data.submission_id)
 
-    return summary_data
+    return make_success_response({"is_testing": is_testing})
 
 
 @app.post('/delete_submission', response_class=JSONResponse)
 async def delete_submission(data: SubmissionRequestData,
-                                user: User = Security(get_current_user, scopes=["submissions.view"])):
+                            user: User = Security(get_current_user, scopes=["submissions.view"])):
     with cuwais.database.create_session() as db_session:
         if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
-            return _make_api_failure(config_file.get("localisation.submission_access_error"))
+            return make_fail_response(config_file.get("localisation.submission_access_error"))
 
         queries.delete_submission(db_session, data.submission_id)
 
-    return {"status": "success"}
+    return make_success_response()
