@@ -263,13 +263,18 @@ def is_submission_healthy(db_session, submission_id):
     return True
 
 
-def is_current_submission(db_session, submission_id):
+def is_current_submission(db_session, submission_id) -> bool:
     submission = db_session.query(Submission).get(submission_id)
 
     if submission is None:
         return False
 
-    return get_current_submission(db_session, submission.user_id)
+    current_submission = get_current_submission(db_session, submission.user_id)
+
+    if current_submission is None:
+        return False
+
+    return submission_id == current_submission.id
 
 
 def get_current_submission(db_session, user: Union[int, User]) -> Optional[Submission]:
@@ -296,7 +301,7 @@ def get_current_submission(db_session, user: Union[int, User]) -> Optional[Submi
     return submission
 
 
-def submission_is_owned_by_user(db_session, submission_id: int, user_id: int):
+def submission_is_owned_by_user(db_session, submission_id: int, user_id: int) -> bool:
     res = db_session.query(Submission).get(submission_id)
 
     if res is None:

@@ -173,7 +173,7 @@ def create_access_token(token_data: dict, expires_delta: timedelta):
 
 
 def get_scopes(user: User):
-    scopes = ["me", "submission.add", "submission.remove", "submission.modify", "submissions.view", "leaderboard.view"]
+    scopes = ["me", "submission.add", "submission.play", "submission.remove", "submission.modify", "submissions.view", "leaderboard.view"]
 
     if user.is_admin:
         scopes.append("bot.add")
@@ -233,6 +233,24 @@ async def get_login_modal_data():
     return make_success_response({
         'clientId': config_file.get("google_client_id"),
         'hostedDomain': config_file.get("allowed_email_domain")
+    })
+
+
+class GetGameData(BaseModel):
+    submission_id: int
+
+
+@app.post('/get_game_data', response_class=JSONResponse)
+async def get_game_data(data: GetGameData, user: User = Security(get_current_user, scopes=["submission.play"])):
+    with cuwais.database.create_session() as db_session:
+        allowed: bool = queries.is_current_submission(db_session, data.submission_id) \
+                  or queries.submission_is_owned_by_user(db_session, data.submission_id, user.id)
+    return make_success_response({
+        'allowed': allowed,
+        'gamemode': {
+            'id': config_file.get("gamemode.id"),
+            'options': config_file.get("gamemode.options"),
+        }
     })
 
 

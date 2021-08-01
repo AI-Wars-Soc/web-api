@@ -10,6 +10,12 @@ front_end:
   server_name: "lvh.me"
   access_token_expire_minutes: 300
   access_token_algorithm: "HS256"
+gamemode:
+ id: chess
+ options:
+   turn_time: 10
+   player_turn_time: 300
+   chess960: true
 localisation:
   crash_reasons:
     valid-game: "This means nothing went wrong. Your game should have completed normally"
