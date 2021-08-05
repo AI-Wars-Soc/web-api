@@ -412,3 +412,9 @@ def is_submission_testing(db_session: Session, submission_id):
         .filter(Result.id == None, Submission.id == submission_id) \
         .all()
     return len(untested) == 1
+
+
+def get_submission_hash(db_session, submission_id) -> str:
+    submission: Submission = db_session.query(Submission).get(submission_id)
+
+    return submission.files_hash

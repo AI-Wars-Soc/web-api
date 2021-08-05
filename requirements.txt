@@ -11,7 +11,7 @@ sh~=1.14.1
 psycopg2~=2.8.6
 Jinja2~=2.11.3
 fastapi
-uvicorn
+uvicorn[standard]
 starlette
 aiofiles
 fastapi-utils

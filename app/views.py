@@ -7,7 +7,7 @@ import cuwais.database
 import jwt
 from cuwais.config import config_file
 from cuwais.database import User
-from fastapi import FastAPI, HTTPException, Security, Cookie
+from fastapi import FastAPI, HTTPException, Security, Cookie, WebSocket
 from fastapi.security import SecurityScopes
 from fastapi_utils.timing import add_timing_middleware
 from jwt import DecodeError, InvalidTokenError
@@ -237,21 +237,45 @@ async def get_login_modal_data():
 
 
 class GetGameData(BaseModel):
-    submission_id: int
+    submission_ids: List[int]
+
+
+def are_submissions_playable(db_session, ids: list, userid):
+    for submission_id in ids:
+        this_allowed = queries.is_current_submission(db_session, submission_id) \
+                       or queries.submission_is_owned_by_user(db_session, submission_id, userid)
+
+        this_allowed = this_allowed and queries.is_submission_healthy(db_session, submission_id)
+
+        if not this_allowed:
+            return False
+
+    return True
 
 
 @app.post('/get_game_data', response_class=JSONResponse)
 async def get_game_data(data: GetGameData, user: User = Security(get_current_user, scopes=["submission.play"])):
-    with cuwais.database.create_session() as db_session:
-        allowed: bool = queries.is_current_submission(db_session, data.submission_id) \
-                  or queries.submission_is_owned_by_user(db_session, data.submission_id, user.id)
-    return make_success_response({
-        'allowed': allowed,
+    response = {
+        'game_data': None,
         'gamemode': {
             'id': config_file.get("gamemode.id"),
             'options': config_file.get("gamemode.options"),
         }
-    })
+    }
+
+    with cuwais.database.create_session() as db_session:
+        if not are_submissions_playable(db_session, data.submission_ids, user.id):
+            return make_success_response(response)
+
+        hashes = []
+        for submission_id in data.submission_ids:
+            hashes.append(queries.get_submission_hash(db_session, submission_id))
+
+        response['game_data'] = {
+            'hashes': hashes
+        }
+
+    return make_success_response(response)
 
 
 class AddSubmissionData(BaseModel):
@@ -469,3 +493,11 @@ async def delete_submission(data: SubmissionRequestData,
         queries.delete_submission(db_session, data.submission_id)
 
     return make_success_response()
+
+
+@app.websocket("/ws/play_game")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
