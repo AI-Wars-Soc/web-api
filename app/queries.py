@@ -418,3 +418,16 @@ def get_submission_hash(db_session, submission_id) -> str:
     submission: Submission = db_session.query(Submission).get(submission_id)
 
     return submission.files_hash
+
+
+def are_submissions_playable(db_session, ids: list, userid):
+    for submission_id in ids:
+        this_allowed = is_current_submission(db_session, submission_id) \
+                       or submission_is_owned_by_user(db_session, submission_id, userid)
+
+        this_allowed = this_allowed and is_submission_healthy(db_session, submission_id)
+
+        if not this_allowed:
+            return False
+
+    return True

@@ -1,10 +1,12 @@
 import logging
 from datetime import timedelta, datetime
 from enum import Enum
+from json import JSONDecodeError
 from typing import Optional, List
 
 import cuwais.database
 import jwt
+import socketio
 from cuwais.config import config_file
 from cuwais.database import User
 from fastapi import FastAPI, HTTPException, Security, Cookie, WebSocket
@@ -240,42 +242,18 @@ class GetGameData(BaseModel):
     submission_ids: List[int]
 
 
-def are_submissions_playable(db_session, ids: list, userid):
-    for submission_id in ids:
-        this_allowed = queries.is_current_submission(db_session, submission_id) \
-                       or queries.submission_is_owned_by_user(db_session, submission_id, userid)
-
-        this_allowed = this_allowed and queries.is_submission_healthy(db_session, submission_id)
-
-        if not this_allowed:
-            return False
-
-    return True
-
-
 @app.post('/get_game_data', response_class=JSONResponse)
 async def get_game_data(data: GetGameData, user: User = Security(get_current_user, scopes=["submission.play"])):
-    response = {
-        'game_data': None,
+    with cuwais.database.create_session() as db_session:
+        allowed = queries.are_submissions_playable(db_session, data.submission_ids, user.id)
+
+    return make_success_response({
+        'allowed': allowed,
         'gamemode': {
             'id': config_file.get("gamemode.id"),
             'options': config_file.get("gamemode.options"),
         }
-    }
-
-    with cuwais.database.create_session() as db_session:
-        if not are_submissions_playable(db_session, data.submission_ids, user.id):
-            return make_success_response(response)
-
-        hashes = []
-        for submission_id in data.submission_ids:
-            hashes.append(queries.get_submission_hash(db_session, submission_id))
-
-        response['game_data'] = {
-            'hashes': hashes
-        }
-
-    return make_success_response(response)
+    })
 
 
 class AddSubmissionData(BaseModel):
@@ -496,8 +474,60 @@ async def delete_submission(data: SubmissionRequestData,
 
 
 @app.websocket("/ws/play_game")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket,
+                             user: User = Security(get_current_user, scopes=["submissions.view"])):
     await websocket.accept()
+
+    try:
+        data = await websocket.receive_json()
+    except JSONDecodeError:
+        await websocket.send_text("Invalid JSON data")
+        return
+
+    if "submission_ids" not in data:
+        await websocket.send_text("Missing submission IDs")
+        return
+    with cuwais.database.create_session() as db_session:
+        if not queries.are_submissions_playable(db_session, data['submission_ids'], user.id):
+            await websocket.send_text("Submission not found")
+            return
+
+        hashes = []
+        for sid in data['submission_ids']:
+            hashes.append(queries.get_submission_hash(db_session, sid))
+
+    sio = socketio.AsyncClient()
+
+    @sio.event
+    async def connect():
+        await websocket.send_text("sio connected")
+        await sio.emit("start_game", {'submissions': hashes})
+        await websocket.send_text("started game")
+
+    @sio.event
+    async def connect_error(error_data):
+        await websocket.send_text("sio connection failed: " + error_data)
+
+    @sio.event
+    async def disconnect():
+        await websocket.send_text("sio disconnected")
+
+    @sio.event
+    async def message(message_data):
+        await websocket.send_text("sio message: " + message_data)
+
+    try:
+        await sio.connect('http://runner:8080/play_game')
+    except ConnectionError:
+        await websocket.send_text("Could not connect to runner")
+        return
+
     while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
+        try:
+            data = await websocket.receive_json()
+        except JSONDecodeError:
+            await websocket.send_text("Invalid JSON data")
+            break
+        await sio.emit('respond', data)
+
+    await sio.disconnect()
