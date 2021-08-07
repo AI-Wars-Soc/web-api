@@ -319,7 +319,7 @@ async def set_name_visible(data: NameVisibleData, user: User = Security(get_curr
 
 
 class RemoveBotData(BaseModel):
-    bot_id: str
+    bot_id: int
 
 
 @app.post('/remove_bot', response_class=JSONResponse)
@@ -334,7 +334,7 @@ async def remove_bot(data: RemoveBotData, _: User = Security(get_current_user, s
 @app.post('/remove_user', response_class=JSONResponse)
 async def remove_user(user: User = Security(get_current_user, scopes=["me"])):
     with cuwais.database.create_session() as db_session:
-        queries.delete_user(db_session, user)
+        queries.delete_user(db_session, user.id)
         db_session.commit()
 
     return make_success_response()
@@ -487,14 +487,20 @@ async def websocket_endpoint(websocket: WebSocket,
     if "submission_ids" not in data:
         await websocket.send_text("Missing submission IDs")
         return
+    submission_ids = [int(i) for i in data['submission_ids']]
+
     with cuwais.database.create_session() as db_session:
-        if not queries.are_submissions_playable(db_session, data['submission_ids'], user.id):
+        if not queries.are_submissions_playable(db_session, submission_ids, user.id):
             await websocket.send_text("Submission not found")
             return
 
         hashes = []
-        for sid in data['submission_ids']:
-            hashes.append(queries.get_submission_hash(db_session, sid))
+        for sid in submission_ids:
+            h = queries.get_submission_hash(db_session, sid)
+            if h is None:
+                await websocket.send_text("Submission id invalid")
+                return
+            hashes.append(h)
 
     sio = socketio.AsyncClient()
 
@@ -517,7 +523,7 @@ async def websocket_endpoint(websocket: WebSocket,
         await websocket.send_text("sio message: " + message_data)
 
     try:
-        await sio.connect('http://runner:8080/play_game')
+        await sio.connect('http://runner:8080/')
     except ConnectionError:
         await websocket.send_text("Could not connect to runner")
         return

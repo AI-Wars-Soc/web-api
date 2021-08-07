@@ -23,7 +23,7 @@ def get_user(user_id: Union[str, int]) -> Optional[User]:
         return db_session.query(User).get(user_id)
 
 
-def generate_nickname(db_session):
+def generate_nickname(db_session: Session):
     tried = {}
     for i in range(1000):
         nick = nickname.get_new_name()
@@ -35,7 +35,7 @@ def generate_nickname(db_session):
     return "[FAILED TO GENERATE NICKNAME]"
 
 
-def make_or_get_google_user(db_session, google_id, name) -> User:
+def make_or_get_google_user(db_session: Session, google_id: str, name: str) -> User:
     user = db_session.execute(
         select(User).where(User.google_id == google_id)
     ).scalar_one_or_none()
@@ -48,11 +48,11 @@ def make_or_get_google_user(db_session, google_id, name) -> User:
     return user
 
 
-def set_user_name_visible(db_session, user: User, visible: bool):
+def set_user_name_visible(db_session: Session, user: User, visible: bool) -> None:
     db_session.query(User).get(user.id).display_real_name = visible
 
 
-def make_scoreboard_entry(user, score: Optional[int], init: int, outcomes: dict):
+def make_scoreboard_entry(user: User, score: Optional[int], init: int, outcomes: dict):
     return {"user_id": user.id,
             "score": 0 if score is None else (init + score),
             "score_text": ("" if score is None else "%.0f" % (init + score)),
@@ -102,7 +102,7 @@ def get_scoreboard_data():
     return scores
 
 
-def get_scoreboard(db_session, querying_user) -> List[Dict[str, Any]]:
+def get_scoreboard(db_session: Session, querying_user: User) -> List[Dict[str, Any]]:
     scores = get_scoreboard_data()
 
     new_scores = []
@@ -154,7 +154,7 @@ def get_leaderboard_graph_data():
     return deltas
 
 
-def get_leaderboard_graph(db_session, querying_user_id):
+def get_leaderboard_graph(db_session: Session, querying_user_id: int):
     deltas = get_leaderboard_graph_data()
 
     users = {}
@@ -174,7 +174,7 @@ def get_leaderboard_graph(db_session, querying_user_id):
     return {"users": users, "deltas": deltas, "initial_score": init}
 
 
-def get_all_user_submissions(db_session, user: User, private=False) -> List[dict]:
+def get_all_user_submissions(db_session: Session, user: User, private=False) -> List[dict]:
     user_id = user.id
     subs = db_session.execute(
         select(Submission).where(Submission.user_id == user_id).order_by(Submission.submission_date)
@@ -234,7 +234,7 @@ def get_all_user_submissions(db_session, user: User, private=False) -> List[dict
     return sub_dicts
 
 
-def create_submission(db_session, user: User, url: str) -> int:
+def create_submission(db_session: Session, user: User, url: str) -> int:
     files_hash = repo.download_repository(user.id, url)
 
     now = datetime.now(tz=timezone.utc)
@@ -244,7 +244,7 @@ def create_submission(db_session, user: User, url: str) -> int:
     return submission.id
 
 
-def is_submission_healthy(db_session, submission_id):
+def is_submission_healthy(db_session: Session, submission_id: int):
     submission: Optional[Submission]
     submission = db_session.query(Submission).get(submission_id)
 
@@ -263,7 +263,7 @@ def is_submission_healthy(db_session, submission_id):
     return True
 
 
-def is_current_submission(db_session, submission_id) -> bool:
+def is_current_submission(db_session: Session, submission_id: int) -> bool:
     submission = db_session.query(Submission).get(submission_id)
 
     if submission is None:
@@ -277,7 +277,7 @@ def is_current_submission(db_session, submission_id) -> bool:
     return submission_id == current_submission.id
 
 
-def get_current_submission(db_session, user: Union[int, User]) -> Optional[Submission]:
+def get_current_submission(db_session: Session, user: Union[int, User]) -> Optional[Submission]:
     user_id = user.id if isinstance(user, User) else int(user)
 
     sub_date = db_session.query(
@@ -301,7 +301,12 @@ def get_current_submission(db_session, user: Union[int, User]) -> Optional[Submi
     return submission
 
 
-def submission_is_owned_by_user(db_session, submission_id: int, user_id: int) -> bool:
+def submission_is_owned_by_user(db_session: Session, submission_id: int, user_id: int) -> bool:
+    if not isinstance(submission_id, int):
+        return False
+    if not isinstance(user_id, int):
+        return False
+
     res = db_session.query(Submission).get(submission_id)
 
     if res is None:
@@ -310,7 +315,12 @@ def submission_is_owned_by_user(db_session, submission_id: int, user_id: int) ->
     return res.user_id == user_id
 
 
-def set_submission_enabled(db_session, submission_id: int, enabled: bool):
+def set_submission_enabled(db_session: Session, submission_id: int, enabled: bool):
+    if not isinstance(submission_id, int):
+        return
+    if not isinstance(enabled, bool):
+        return
+
     res = db_session.query(Submission).get(submission_id)
 
     if res is None:
@@ -350,39 +360,47 @@ def get_submission_win_loss_data(submission_id: int):
             "draws_healthy": vs[Outcome.Draw]["count_healthy"]}
 
 
-def get_all_bot_submissions(db_session) -> List[Tuple[User, Submission]]:
+def get_all_bot_submissions(db_session: Session) -> List[Tuple[User, Submission]]:
     return db_session.query(User, Submission).filter(User.is_bot == True).join(User.submissions).all()
 
 
-def create_bot(db_session, name) -> User:
+def create_bot(db_session: Session, name: str) -> Optional[User]:
+    if not isinstance(name, str):
+        return None
+
     bot = User(nickname=name, real_name=name, is_bot=True)
     db_session.add(bot)
 
     return bot
 
 
-def delete_bot(db_session, bot_id):
+def delete_bot(db_session: Session, bot_id: int) -> None:
+    if not isinstance(bot_id, int):
+        return
+
     db_session.query(Match) \
         .filter(Result.match_id == Match.id, Result.submission_id == Submission.id, Submission.user_id == bot_id) \
         .delete(synchronize_session='fetch')
-    bot = db_session.query(User).get(bot_id)
-    delete_user(db_session, bot)
+    delete_user(db_session, bot_id)
 
 
-def delete_user(db_session, user):
+def delete_user(db_session: Session, user_id: int) -> None:
+    if not isinstance(user_id, int):
+        return
+
     # Get submission hashes
     submissions = db_session.query(Submission) \
-        .filter(Submission.user_id == user.id).all()
+        .filter(Submission.user_id == user_id).all()
     submission_hashes = [s.files_hash for s in submissions]
 
     # Delete all data
     db_session.query(Result) \
-        .filter(Result.submission_id == Submission.id, Submission.user_id == user.id) \
+        .filter(Result.submission_id == Submission.id, Submission.user_id == user_id) \
         .delete(synchronize_session='fetch')
     db_session.query(Submission) \
-        .filter(Submission.user_id == user.id) \
+        .filter(Submission.user_id == user_id) \
         .delete(synchronize_session='fetch')
-    db_session.delete(db_session.query(User).get(user.id))
+    db_session.delete(db_session.query(User).get(user_id))
     db_session.commit()
 
     # Delete archives
@@ -390,7 +408,10 @@ def delete_user(db_session, user):
         repo.remove_submission_archive(sub_hash)
 
 
-def delete_submission(db_session: Session, submission_id: int):
+def delete_submission(db_session: Session, submission_id: int) -> None:
+    if not isinstance(submission_id, int):
+        return
+
     # Get submission hashes
     submission: Submission = db_session.query(Submission).get(submission_id)
     submission_hash = submission.files_hash
@@ -406,7 +427,10 @@ def delete_submission(db_session: Session, submission_id: int):
     repo.remove_submission_archive(submission_hash)
 
 
-def is_submission_testing(db_session: Session, submission_id):
+def is_submission_testing(db_session: Session, submission_id) -> bool:
+    if not isinstance(submission_id, int):
+        return False
+
     untested = db_session.query(Submission.id) \
         .outerjoin(Submission.results) \
         .filter(Result.id == None, Submission.id == submission_id) \
@@ -414,13 +438,24 @@ def is_submission_testing(db_session: Session, submission_id):
     return len(untested) == 1
 
 
-def get_submission_hash(db_session, submission_id) -> str:
+def get_submission_hash(db_session: Session, submission_id) -> Optional[str]:
+    if not isinstance(submission_id, int):
+        return None
+
     submission: Submission = db_session.query(Submission).get(submission_id)
+
+    if submission is None:
+        return None
 
     return submission.files_hash
 
 
-def are_submissions_playable(db_session, ids: list, userid):
+def are_submissions_playable(db_session: Session, ids, userid):
+    if not all(isinstance(x, int) for x in ids):
+        return False
+    if not isinstance(userid, int):
+        return False
+
     for submission_id in ids:
         this_allowed = is_current_submission(db_session, submission_id) \
                        or submission_is_owned_by_user(db_session, submission_id, userid)
