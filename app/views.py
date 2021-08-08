@@ -1,8 +1,9 @@
+import json
 import logging
 from datetime import timedelta, datetime
 from enum import Enum
 from json import JSONDecodeError
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 import cuwais.database
 import jwt
@@ -17,6 +18,7 @@ from pydantic import ValidationError
 from pydantic.main import BaseModel
 from starlette import status
 from starlette.responses import JSONResponse, Response
+from starlette.websockets import WebSocketDisconnect
 
 from app import login, queries, repo
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
@@ -478,27 +480,30 @@ async def websocket_endpoint(websocket: WebSocket,
                              user: User = Security(get_current_user, scopes=["submissions.view"])):
     await websocket.accept()
 
+    async def make_websocket_response(resp_status: Literal["error", "debug", "message"], d=None) -> None:
+        await websocket.send_text(json.dumps({"status": resp_status, "data": d}))
+
     try:
         data = await websocket.receive_json()
     except JSONDecodeError:
-        await websocket.send_text("Invalid JSON data")
+        await make_websocket_response("error", "Invalid JSON data")
         return
 
     if "submission_ids" not in data:
-        await websocket.send_text("Missing submission IDs")
+        await make_websocket_response("error", "Missing submission IDs")
         return
     submission_ids = [int(i) for i in data['submission_ids']]
 
     with cuwais.database.create_session() as db_session:
         if not queries.are_submissions_playable(db_session, submission_ids, user.id):
-            await websocket.send_text("Submission not found")
+            await make_websocket_response("error", "Submission not found")
             return
 
         hashes = []
         for sid in submission_ids:
             h = queries.get_submission_hash(db_session, sid)
             if h is None:
-                await websocket.send_text("Submission id invalid")
+                await make_websocket_response("error", "Submission id invalid")
                 return
             hashes.append(h)
 
@@ -506,33 +511,30 @@ async def websocket_endpoint(websocket: WebSocket,
 
     @sio.event
     async def connect():
-        await websocket.send_text("sio connected")
         await sio.emit("start_game", {'submissions': hashes})
-        await websocket.send_text("started game")
 
     @sio.event
     async def connect_error(error_data):
-        await websocket.send_text("sio connection failed: " + error_data)
+        await make_websocket_response("error", "sio connection failed: " + error_data)
 
     @sio.event
     async def disconnect():
-        await websocket.send_text("sio disconnected")
+        await websocket.close()
 
     @sio.event
     async def message(message_data):
-        await websocket.send_text("sio message: " + message_data)
+        await make_websocket_response("message", message_data)
 
     try:
         await sio.connect('http://runner:8080/')
     except ConnectionError:
-        await websocket.send_text("Could not connect to runner")
+        await make_websocket_response("error", "Could not connect to runner")
         return
 
     while True:
         try:
-            data = await websocket.receive_json()
-        except JSONDecodeError:
-            await websocket.send_text("Invalid JSON data")
+            data = await websocket.receive_text()
+        except WebSocketDisconnect:
             break
         await sio.emit('respond', data)
 

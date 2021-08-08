@@ -13,7 +13,7 @@ USER root
 
 # Copy scripts
 COPY app /home/web_user/app
-COPY app/default_config.yml /home/web_user/default_config.yml
+ADD https://raw.githubusercontent.com/AI-Wars-Soc/common/main/default_config.yml /home/web_user/default_config.yml
 RUN chown -R web_user /home/web_user/app
 ENV PYTHONPATH="/home/web_user:/home/web_user/app:${PYTHONPATH}"
 
