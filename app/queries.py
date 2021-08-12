@@ -35,19 +35,6 @@ def generate_nickname(db_session: Session):
     return "[FAILED TO GENERATE NICKNAME]"
 
 
-def make_or_get_google_user(db_session: Session, google_id: str, name: str) -> User:
-    user = db_session.execute(
-        select(User).where(User.google_id == google_id)
-    ).scalar_one_or_none()
-
-    if user is None:
-        nick = generate_nickname(db_session)
-        user = User(nickname=nick, real_name=name, google_id=google_id)
-        db_session.add(user)
-
-    return user
-
-
 def set_user_name_visible(db_session: Session, user: User, visible: bool) -> None:
     db_session.query(User).get(user.id).display_real_name = visible
 

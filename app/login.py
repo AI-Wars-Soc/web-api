@@ -8,10 +8,13 @@ from google.oauth2 import id_token
 import google.auth.transport.requests
 import cachecontrol
 import requests
+from sqlalchemy import select
 
 from werkzeug.exceptions import abort
 
 from app import queries
+from app.config import ADMINS
+from app.queries import generate_nickname
 
 session = requests.session()
 cached_session = cachecontrol.CacheControl(session)
@@ -50,6 +53,13 @@ def get_user_from_google_token(db_session, token) -> User:
     google_id = str(id_info['sub'])
     name = str(id_info['name'])
 
-    user = queries.make_or_get_google_user(db_session, google_id, name)
+    user = db_session.execute(
+        select(User).where(User.google_id == google_id)
+    ).scalar_one_or_none()
+
+    if user is None:
+        nick = generate_nickname(db_session)
+        user = User(nickname=nick, real_name=name, google_id=google_id, is_admin=email in ADMINS)
+        db_session.add(user)
 
     return user

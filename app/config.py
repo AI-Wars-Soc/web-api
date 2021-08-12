@@ -12,3 +12,5 @@ SERVER_NAME = config_file.get("front_end.server_name")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = config_file.get("front_end.access_token_expire_minutes")
 ACCESS_TOKEN_ALGORITHM = config_file.get("front_end.access_token_algorithm")
+
+ADMINS = {str(account) for account in config_file.get("admin_emails")}
