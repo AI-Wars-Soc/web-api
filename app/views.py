@@ -21,7 +21,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.websockets import WebSocketDisconnect
 
 from app import login, queries, repo
-from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM
+from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM, SECURE
 
 app = FastAPI(root_path="/api")
 if DEBUG and PROFILE:
@@ -205,7 +205,7 @@ async def exchange_google_token(data: GoogleTokenData, response: Response):
         token_data={"sub": user_id, "scopes": scopes},
         expires_delta=access_token_expires,
     )
-    response.set_cookie("session_jwt", access_token, httponly=True, samesite="strict", secure=not DEBUG)
+    response.set_cookie("session_jwt", access_token, httponly=True, samesite="strict", secure=SECURE)
     return make_success_response({"user": user_dict, "expiry_minutes": ACCESS_TOKEN_EXPIRE_MINUTES})
 
 

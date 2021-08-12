@@ -4,6 +4,7 @@ with open("/run/secrets/secret_key") as secrets_file:
     secret = "".join(secrets_file.readlines())
     SECRET_KEY = secret
 DEBUG = config_file.get("debug")
+SECURE = config_file.get("secure")
 
 PROFILE = config_file.get("profile")
 
