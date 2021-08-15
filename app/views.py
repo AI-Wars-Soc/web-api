@@ -182,6 +182,7 @@ def get_scopes(user: User):
     if user.is_admin:
         scopes.append("bot.add")
         scopes.append("bot.remove")
+        scopes.append("service.status")
 
     return scopes
 
@@ -465,7 +466,7 @@ async def is_submission_testing(data: SubmissionRequestData,
 
 @app.post('/delete_submission', response_class=JSONResponse)
 async def delete_submission(data: SubmissionRequestData,
-                            user: User = Security(get_current_user, scopes=["submissions.view"])):
+                            user: User = Security(get_current_user, scopes=["submissions.remove"])):
     with cuwais.database.create_session() as db_session:
         if not queries.submission_is_owned_by_user(db_session, data.submission_id, user.id):
             return make_fail_response(config_file.get("localisation.submission_access_error"))
@@ -473,6 +474,12 @@ async def delete_submission(data: SubmissionRequestData,
         queries.delete_submission(db_session, data.submission_id)
 
     return make_success_response()
+
+
+@app.post('/service_status', response_class=JSONResponse)
+async def service_status(user: User = Security(get_current_user, scopes=["service.status"])):
+    services = {"web_api": True}
+    return make_success_response(services)
 
 
 @app.websocket("/ws/play_game")
