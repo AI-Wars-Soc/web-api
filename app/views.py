@@ -181,7 +181,7 @@ def get_scopes(user: User):
 
     if user.is_admin:
         scopes.append("bot.add")
-        scopes.append("bot.view")
+        scopes.append("bots.view")
         scopes.append("bot.remove")
         scopes.append("service.status")
 
