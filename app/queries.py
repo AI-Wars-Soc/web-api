@@ -43,6 +43,7 @@ def make_scoreboard_entry(user: User, score: Optional[int], init: int, outcomes:
     return {"user_id": user.id,
             "score": 0 if score is None else (init + score),
             "score_text": ("" if score is None else "%.0f" % (init + score)),
+            "is_bot": user.is_bot,
             "outcomes": outcomes}
 
 
@@ -67,7 +68,7 @@ def get_scoreboard_data():
             ).join(User.submissions) \
                 .join(Submission.results) \
                 .join(Result.match) \
-                .filter(Result.outcome == int(outcome.value), Result.healthy == True) \
+                .filter(Result.outcome == int(outcome.value), Result.healthy == True, Result.points_delta != 0) \
                 .filter(Match.match_date > since) \
                 .group_by(User.id) \
                 .all()
@@ -321,29 +322,35 @@ def get_submission_win_loss_data(submission_id: int):
     with cuwais.database.create_session() as db_session:
         vs = {}
         for outcome in Outcome:
-            c = db_session.query(
-                func.count(Result.id)
-            ).join(Submission.results) \
-                .group_by(Submission.id) \
-                .filter(Submission.id == submission_id, Result.outcome == outcome.value) \
-                .first()
-
-            ch = db_session.query(
+            count = db_session.query(
                 func.count(Result.id)
             ).join(Submission.results) \
                 .group_by(Submission.id) \
                 .filter(Submission.id == submission_id,
                         Result.outcome == outcome.value,
-                        Result.healthy == True) \
+                        Result.points_delta != 0) \
                 .first()
 
-            c = 0 if c is None else c[0]
-            ch = 0 if ch is None else ch[0]
+            count_healthy = db_session.query(
+                func.count(Result.id)
+            ).join(Submission.results) \
+                .group_by(Submission.id) \
+                .filter(Submission.id == submission_id,
+                        Result.outcome == outcome.value,
+                        Result.healthy == True,
+                        Result.points_delta != 0) \
+                .first()
 
-            vs[outcome] = {"count": c, "count_healthy": ch}
+            count = 0 if count is None else count[0]
+            count_healthy = 0 if count_healthy is None else count_healthy[0]
 
-    return {"wins": vs[Outcome.Win]["count"], "losses": vs[Outcome.Loss]["count"], "draws": vs[Outcome.Draw]["count"],
-            "wins_healthy": vs[Outcome.Win]["count_healthy"], "losses_healthy": vs[Outcome.Loss]["count_healthy"],
+            vs[outcome] = {"count": count, "count_healthy": count_healthy}
+
+    return {"wins": vs[Outcome.Win]["count"],
+            "losses": vs[Outcome.Loss]["count"],
+            "draws": vs[Outcome.Draw]["count"],
+            "wins_healthy": vs[Outcome.Win]["count_healthy"],
+            "losses_healthy": vs[Outcome.Loss]["count_healthy"],
             "draws_healthy": vs[Outcome.Draw]["count_healthy"]}
 
 
