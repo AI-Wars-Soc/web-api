@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import timedelta, datetime
@@ -7,7 +8,7 @@ from typing import Optional, List, Literal
 
 import cuwais.database
 import jwt
-import socketio
+import websockets
 from cuwais.config import config_file
 from cuwais.database import User
 from fastapi import FastAPI, HTTPException, Security, Cookie, WebSocket
@@ -18,12 +19,12 @@ from pydantic import ValidationError
 from pydantic.main import BaseModel
 from starlette import status
 from starlette.responses import JSONResponse, Response
-from starlette.websockets import WebSocketDisconnect
+from websockets.exceptions import ConnectionClosed
 
 from app import login, queries, repo
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM, SECURE
 
-app = FastAPI(root_path="/api")
+app = FastAPI(root_path="/api", debug=DEBUG)
 if DEBUG and PROFILE:
     add_timing_middleware(app, record=logging.info, prefix="app", exclude="untimed")
 
@@ -483,6 +484,24 @@ async def service_status(user: User = Security(get_current_user, scopes=["servic
     return make_success_response(services)
 
 
+async def forward(ws_a: WebSocket, ws_b: websockets.WebSocketClientProtocol):
+    while True:
+        data = await ws_a.receive_text()
+        await ws_b.send(data)
+
+
+async def reverse(ws_a: WebSocket, ws_b: websockets.WebSocketClientProtocol):
+    while True:
+        data = await ws_b.recv()
+        await ws_a.send_text(data)
+
+
+async def join(ws_a: WebSocket, ws_b: websockets.WebSocketClientProtocol):
+    fwd_task = asyncio.create_task(forward(ws_a, ws_b))
+    rev_task = asyncio.create_task(reverse(ws_a, ws_b))
+    await asyncio.gather(fwd_task, rev_task)
+
+
 @app.websocket("/ws/play_game")
 async def websocket_endpoint(websocket: WebSocket,
                              user: User = Security(get_current_user, scopes=["submissions.view"])):
@@ -515,35 +534,10 @@ async def websocket_endpoint(websocket: WebSocket,
                 return
             hashes.append(h)
 
-    sio = socketio.AsyncClient()
-
-    @sio.event
-    async def connect():
-        await sio.emit("start_game", {'submissions': hashes})
-
-    @sio.event
-    async def connect_error(error_data):
-        await make_websocket_response("error", "sio connection failed: " + error_data)
-
-    @sio.event
-    async def disconnect():
-        await websocket.close()
-
-    @sio.event
-    async def message(message_data):
-        await make_websocket_response("message", message_data)
-
-    try:
-        await sio.connect('http://runner:8080/')
-    except ConnectionError:
-        await make_websocket_response("error", "Could not connect to runner")
-        return
-
-    while True:
+    async with websockets.connect("ws://runner:8080/ws/run") as ws_b_client:
+        ws_b_client: websockets.WebSocketClientProtocol
         try:
-            data = await websocket.receive_text()
-        except WebSocketDisconnect:
-            break
-        await sio.emit('respond', data)
-
-    await sio.disconnect()
+            await ws_b_client.send(json.dumps({"submissions": hashes}))
+            await join(websocket, ws_b_client)
+        except ConnectionClosed:  # Websocket client closed
+            pass

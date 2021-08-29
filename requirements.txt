@@ -20,4 +20,4 @@ gevent
 pyjwt
 pydantic
 inotify
-python-socketio[asyncio_client]
+websockets
