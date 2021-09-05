@@ -15,6 +15,9 @@ USER web_user
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Copy default submissions
+COPY app /home/web_user/default_submissions
+
 # Copy scripts
 COPY --chown=web_user app /home/web_user/app
 ADD --chown=web_user https://raw.githubusercontent.com/AI-Wars-Soc/common/main/default_config.yml /home/web_user/default_config.yml
