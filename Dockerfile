@@ -16,10 +16,15 @@ COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
 USER root
 
+# Copy default submissions
+COPY app /home/web_user/default_submissions
+
 # Copy scripts
 COPY app /home/web_user/app
 ADD --chown=web_user https://raw.githubusercontent.com/AI-Wars-Soc/common/main/default_config.yml /home/web_user/default_config.yml
-RUN chown -R web_user /home/web_user/app
+
+# Chown everything
+RUN chown -R web_user /home/web_user
 
 # Set up env
 ENV PYTHONDONTWRITEBYTECODE 1
