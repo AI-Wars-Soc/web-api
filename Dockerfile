@@ -16,7 +16,7 @@ COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy default submissions
-COPY app /home/web_user/default_submissions
+COPY default_submissions /home/web_user/default_submissions
 
 # Copy scripts
 COPY --chown=web_user app /home/web_user/app

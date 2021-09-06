@@ -18,11 +18,12 @@ from jwt import DecodeError, InvalidTokenError
 from pydantic import ValidationError
 from pydantic.main import BaseModel
 from starlette import status
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, Response, FileResponse
 from websockets.exceptions import ConnectionClosed
 
 from app import login, queries, repo
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM, SECURE
+from app.default_submissions import DEFAULT_SUBMISSION_TAR_PATH, DEFAULT_SUBMISSION_ZIP_PATH
 
 app = FastAPI(root_path="/api", debug=DEBUG)
 if DEBUG and PROFILE:
@@ -178,7 +179,8 @@ def create_access_token(token_data: dict, expires_delta: timedelta):
 
 
 def get_scopes(user: User):
-    scopes = ["me", "submission.add", "submission.play", "submission.remove", "submission.modify", "submissions.view", "leaderboard.view"]
+    scopes = ["me", "submission.add", "submission.play", "submission.remove", "submission.modify", "submissions.view",
+              "submission.get_default", "leaderboard.view"]
 
     if user.is_admin:
         scopes.append("bot.add")
@@ -482,6 +484,15 @@ async def delete_submission(data: SubmissionRequestData,
 async def service_status(user: User = Security(get_current_user, scopes=["service.status"])):
     services = {"web_api": True}
     return make_success_response(services)
+
+
+@app.get('/get_default_submission', response_class=FileResponse)
+async def get_default_submission(extension: Literal["tar", "zip"]):  # user: User = Security(get_current_user, scopes=["submission.get_default"])):
+    media = 'application/octet-stream'
+    file = "default_ai"
+    if extension == "tar":
+        return FileResponse(DEFAULT_SUBMISSION_TAR_PATH, media_type=media, filename=file + ".tar")
+    return FileResponse(DEFAULT_SUBMISSION_ZIP_PATH, media_type=media, filename=file + ".zip")
 
 
 async def forward(ws_a: WebSocket, ws_b: websockets.WebSocketClientProtocol):

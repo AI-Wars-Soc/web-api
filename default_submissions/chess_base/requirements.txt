@@ -1,0 +1,3 @@
+# THIS FILE DOES NOT CHANGE THE PACKAGES AVAILABLE TO YOUR AI WHEN SUBMITTED!
+# For a list of available packages, see the /about page
+chess~=1.6.1
