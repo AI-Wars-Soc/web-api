@@ -488,8 +488,7 @@ async def service_status(user: User = Security(get_current_user, scopes=["servic
 
 
 @app.get('/get_default_submission', response_class=FileResponse)
-async def get_default_submission(extension: Literal[
-    "tar", "zip"]):  # user: User = Security(get_current_user, scopes=["submission.get_default"])):
+async def get_default_submission(extension: Literal["tar", "zip"]):  # user: User = Security(get_current_user, scopes=["submission.get_default"])):
     media = 'application/octet-stream'
     file = "default_ai"
     if extension == "tar":
