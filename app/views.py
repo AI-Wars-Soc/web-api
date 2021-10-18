@@ -271,7 +271,7 @@ class AddSubmissionData(BaseModel):
 async def add_submission(data: AddSubmissionData, user: User = Security(get_current_user, scopes=["submission.add"])):
     try:
         with cuwais.database.create_session() as db_session:
-            submission_id = queries.create_submission(db_session, user, data.url)
+            submission_id = queries.create_git_submission(db_session, user, data.url)
             db_session.commit()
     except repo.InvalidGitURL:
         return make_fail_response(config_file.get("localisation.git_errors.invalid-url"))
@@ -287,6 +287,25 @@ async def add_submission(data: AddSubmissionData, user: User = Security(get_curr
     return make_success_response({"submission_id": submission_id})
 
 
+class SubmissionRawFilesData(BaseModel):
+    files: List[(str, bytes)]
+
+
+@app.post('/add_submission_raw_files', response_class=JSONResponse)
+async def add_submission_raw_files(data: SubmissionRawFilesData,
+                                   user: User = Security(get_current_user, scopes=["submission.add"])):
+    try:
+        with cuwais.database.create_session() as db_session:
+            submission_id = queries.create_raw_files_submission(db_session, user, data.files)
+            db_session.commit()
+    except repo.AlreadyExistsException:
+        return make_fail_response(config_file.get("localisation.git_errors.already-submitted"))
+    except repo.RepoTooBigException:
+        return make_fail_response(config_file.get("localisation.git_errors.too-large"))
+
+    return make_success_response({"submission_id": submission_id})
+
+
 class BotData(BaseModel):
     name: str
     url: str
@@ -298,7 +317,7 @@ async def add_bot(data: BotData, _: User = Security(get_current_user, scopes=["b
         bot = queries.create_bot(db_session, data.name)
         db_session.flush()
         try:
-            submission_id = queries.create_submission(db_session, bot, data.url)
+            submission_id = queries.create_git_submission(db_session, bot, data.url)
         except repo.InvalidGitURL:
             return make_fail_response(config_file.get("localisation.git_errors.invalid-url"))
         except repo.AlreadyExistsException:

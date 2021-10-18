@@ -1,4 +1,7 @@
+import hashlib
+import io
 import json
+import tarfile
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Any, Union
 
@@ -11,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app import repo, nickname
 from app.caching import cached
+from app.repo import get_repo_path
 
 
 def get_user(user_id: Union[str, int]) -> Optional[User]:
@@ -222,9 +226,31 @@ def get_all_user_submissions(db_session: Session, user: User, private=False) -> 
     return sub_dicts
 
 
-def create_submission(db_session: Session, user: User, url: str) -> int:
+def create_git_submission(db_session: Session, user: User, url: str) -> int:
     files_hash = repo.download_repository(user.id, url)
 
+    return create_submission(db_session, user, url, files_hash)
+
+
+def create_raw_files_submission(db_session: Session, user: User, files: List[(str, bytes)]) -> int:
+    url = "file://localfiles"
+
+    # Calculate submission hash
+    digest = hashlib.sha256()
+    for file, data in files:
+        digest.update(data)
+    files_hash = cuwais.common.calculate_git_hash(user.id, digest.hexdigest(), url)
+
+    # Create tar and save
+    with tarfile.open(get_repo_path(files_hash), mode='w') as tar:
+        for file, data in files:
+            fileobj = io.BytesIO(data)
+            tar.addfile(tar.gettarinfo(name=file, arcname=file, fileobj=fileobj), fileobj)
+
+    return create_submission(db_session, user, url, files_hash)
+
+
+def create_submission(db_session: Session, user: User, url: str, files_hash: str) -> int:
     now = datetime.now(tz=timezone.utc)
     submission = Submission(user_id=user.id, submission_date=now, url=url, active=True, files_hash=files_hash)
     db_session.add(submission)
