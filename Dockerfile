@@ -1,5 +1,5 @@
 # Dockerfile for sandbox in which python 3 code is run
-FROM python:3-buster
+FROM python:3.8-buster
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Europe/London \
@@ -14,19 +14,16 @@ WORKDIR /home/web_user
 USER web_user
 COPY requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt
-USER root
 
 # Copy scripts
-COPY app /home/web_user/app
+COPY --chown=web_user app /home/web_user/app
 ADD --chown=web_user https://raw.githubusercontent.com/AI-Wars-Soc/common/main/default_config.yml /home/web_user/default_config.yml
-RUN chown -R web_user /home/web_user/app
 
 # Set up env
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Set up repository permissions
-USER web_user
 RUN mkdir /home/web_user/repositories
 VOLUME /home/web_user/repositories
 
