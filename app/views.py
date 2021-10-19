@@ -4,7 +4,7 @@ import logging
 from datetime import timedelta, datetime
 from enum import Enum
 from json import JSONDecodeError
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Tuple
 
 import cuwais.database
 import jwt
@@ -24,6 +24,7 @@ from websockets.exceptions import ConnectionClosed
 from app import login, queries, repo
 from app.config import DEBUG, PROFILE, ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY, ACCESS_TOKEN_ALGORITHM, SECURE
 from app.default_submissions import DEFAULT_SUBMISSION_TAR_PATH, DEFAULT_SUBMISSION_ZIP_PATH
+from app.queries import SubmissionRawFileData
 
 app = FastAPI(root_path="/api", debug=DEBUG)
 if DEBUG and PROFILE:
@@ -271,7 +272,7 @@ class AddSubmissionData(BaseModel):
 async def add_submission(data: AddSubmissionData, user: User = Security(get_current_user, scopes=["submission.add"])):
     try:
         with cuwais.database.create_session() as db_session:
-            submission_id = queries.create_submission(db_session, user, data.url)
+            submission_id = queries.create_git_submission(db_session, user, data.url)
             db_session.commit()
     except repo.InvalidGitURL:
         return make_fail_response(config_file.get("localisation.git_errors.invalid-url"))
@@ -287,6 +288,27 @@ async def add_submission(data: AddSubmissionData, user: User = Security(get_curr
     return make_success_response({"submission_id": submission_id})
 
 
+class SubmissionRawFilesData(BaseModel):
+    files: List[SubmissionRawFileData]
+
+
+@app.post('/add_submission_raw_files', response_class=JSONResponse)
+async def add_submission_raw_files(data: SubmissionRawFilesData,
+                                   user: User = Security(get_current_user, scopes=["submission.add"])):
+    try:
+        with cuwais.database.create_session() as db_session:
+            submission_id = queries.create_raw_files_submission(db_session, user, data.files)
+            db_session.commit()
+    except repo.AlreadyExistsException:
+        logging.debug(f"New raw submission failed as it was already submitted")
+        return make_fail_response(config_file.get("localisation.git_errors.already-submitted"))
+    except repo.RepoTooBigException:
+        logging.debug(f"New raw submission failed as it was too large")
+        return make_fail_response(config_file.get("localisation.git_errors.too-large"))
+
+    return make_success_response({"submission_id": submission_id})
+
+
 class BotData(BaseModel):
     name: str
     url: str
@@ -298,7 +320,7 @@ async def add_bot(data: BotData, _: User = Security(get_current_user, scopes=["b
         bot = queries.create_bot(db_session, data.name)
         db_session.flush()
         try:
-            submission_id = queries.create_submission(db_session, bot, data.url)
+            submission_id = queries.create_git_submission(db_session, bot, data.url)
         except repo.InvalidGitURL:
             return make_fail_response(config_file.get("localisation.git_errors.invalid-url"))
         except repo.AlreadyExistsException:

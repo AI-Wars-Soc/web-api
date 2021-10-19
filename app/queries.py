@@ -1,4 +1,8 @@
+import hashlib
+import io
 import json
+import logging
+import tarfile
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Tuple, Dict, Any, Union
 
@@ -6,11 +10,13 @@ import cuwais
 from cuwais.common import Outcome
 from cuwais.config import config_file
 from cuwais.database import User, Submission, Result, Match
+from pydantic import BaseModel
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
 
 from app import repo, nickname
 from app.caching import cached
+from app.repo import get_repo_path, AlreadyExistsException, RepoTooBigException
 
 
 def get_user(user_id: Union[str, int]) -> Optional[User]:
@@ -222,9 +228,48 @@ def get_all_user_submissions(db_session: Session, user: User, private=False) -> 
     return sub_dicts
 
 
-def create_submission(db_session: Session, user: User, url: str) -> int:
+def create_git_submission(db_session: Session, user: User, url: str) -> int:
     files_hash = repo.download_repository(user.id, url)
 
+    return create_submission(db_session, user, url, files_hash)
+
+
+class SubmissionRawFileData(BaseModel):
+    fileName: str
+    data: str
+
+
+def create_raw_files_submission(db_session: Session, user: User, files: List[SubmissionRawFileData]) -> int:
+    url = "file://localfiles"
+
+    size = sum([len(v) for f, v in files])
+    if size > int(config_file.get("max_repo_size_bytes")):
+        raise RepoTooBigException(url)
+
+    # Calculate submission hash
+    digest = hashlib.sha256()
+    for file in files:
+        digest.update(file.data.encode())
+    files_hash = cuwais.common.calculate_git_hash(user.id, digest.hexdigest(), url)
+
+    logging.info(f"New raw submission with hash {files_hash}")
+    archive_dir = get_repo_path(files_hash)
+    if archive_dir.exists():
+        raise AlreadyExistsException(url)
+
+    # Create tar and save
+    with tarfile.open(archive_dir, mode='w') as tar:
+        for file in files:
+            data = file.data.encode()
+            fileobj = io.BytesIO(data)
+            info = tarfile.TarInfo(name=file.fileName)
+            info.size = len(data)
+            tar.addfile(info, fileobj)
+
+    return create_submission(db_session, user, url, files_hash)
+
+
+def create_submission(db_session: Session, user: User, url: str, files_hash: str) -> int:
     now = datetime.now(tz=timezone.utc)
     submission = Submission(user_id=user.id, submission_date=now, url=url, active=True, files_hash=files_hash)
     db_session.add(submission)

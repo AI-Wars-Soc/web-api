@@ -60,7 +60,8 @@ def download_repository(user_id: int, url: str) -> str:
 
     clone_dir = Path(GIT_BASE_DIR, files_hash)
     clone_dir_str = str(clone_dir.absolute())
-    archive_dir = Path(GIT_BASE_DIR, files_hash + ".tar")
+
+    archive_dir = get_repo_path(files_hash)
     archive_dir_str = str(archive_dir.absolute())
 
     _cloning_dirs_mutex.acquire()
@@ -107,3 +108,7 @@ def get_dir_size_bytes(path) -> int:
             total_size += os.path.getsize(fp)
 
     return total_size
+
+
+def get_repo_path(digest: str):
+    return Path(GIT_BASE_DIR, digest + ".tar")
