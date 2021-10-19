@@ -180,7 +180,7 @@ def create_access_token(token_data: dict, expires_delta: timedelta):
 
 
 def get_scopes(user: User):
-    scopes = ["me", "submission.add", "submission.play", "submission.remove", "submission.modify", "submissions.view",
+    scopes = ["me", "submission.add", "submission.play", "submissions.remove", "submission.modify", "submissions.view",
               "submission.get_default", "leaderboard.view"]
 
     if user.is_admin:
